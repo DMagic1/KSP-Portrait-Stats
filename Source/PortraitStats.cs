@@ -44,6 +44,7 @@ namespace PortraitStats
 		private void Start()
 		{
 			GameEvents.onVesselWasModified.Add(vesselCheck);
+			GameEvents.onVesselChange.Add(vesselCheck);
 
 			manager = findKerbalGUIManager();
 
@@ -58,11 +59,12 @@ namespace PortraitStats
 		private void OnDestroy()
 		{
 			GameEvents.onVesselWasModified.Remove(vesselCheck);
+			GameEvents.onVesselChange.Remove(vesselCheck);
 
 			RenderingManager.RemoveFromPostDrawQueue(5, drawLabels);
 		}
 
-		private void Update()
+		private void LateUpdate()
 		{
 			if (!FlightGlobals.ready)
 				return;
@@ -112,7 +114,9 @@ namespace PortraitStats
 
 		private void drawLabels()
 		{
-			if (KerbalGUIManager.ActiveCrew.Count <= 0)
+			int crewCount = KerbalGUIManager.ActiveCrew.Count;
+
+			if (crewCount <= 0)
 				return;
 
 			switch (CameraManager.Instance.currentCameraMode)
@@ -127,7 +131,26 @@ namespace PortraitStats
 
 			for(int i = 0; i < activeCrew.Count; i++)
 			{
-				float leftOffset = screenPos.x - (i * (manager.AvatarSpacing + manager.AvatarSize));
+				float leftOffset;
+
+				/* This lovely bit of nonsense is due to the fact that KSP orders the crew portraits
+				 * differently based on how many Kerbals are present. Crews with 2 or 3 Kerbals require
+				 * special cases...
+				 */
+				if (crewCount == 2)
+					leftOffset = screenPos.x - ((i == 0 ? 1 : 0) * (manager.AvatarSpacing + manager.AvatarSize));
+				else if (crewCount == 3)
+				{
+					int j = i;
+					if (j == 1)
+						j = 2;
+					else if (j == 2)
+						j = 1;
+					leftOffset = screenPos.x - (j * (manager.AvatarSpacing + manager.AvatarSize));
+				}
+				else
+					leftOffset = screenPos.x - (i * (manager.AvatarSpacing + manager.AvatarSize));
+
 				Rect r = new Rect(leftOffset, screenPos.y, 24, 24);
 
 				GUI.color = activeCrew[i].IconColor;
