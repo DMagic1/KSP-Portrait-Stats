@@ -86,10 +86,10 @@ namespace PortraitStats
 					currentCrew.Add(k.name, new KerbalTrait(k));
 				}
 
-				float button = KerbalGUIManager.ActiveCrew.Count > 3 ? 28 : 0;
+				float button = KerbalGUIManager.ActiveCrew.Count > 3 ? 27 : -1;
 
 				screenPos.x = Screen.width - manager.AvatarSpacing - manager.AvatarSize - button;
-				screenPos.y = Screen.height - manager.AvatarSpacing - manager.AvatarSize - manager.AvatarTextSize + 68;
+				screenPos.y = Screen.height - manager.AvatarSpacing - manager.AvatarSize - manager.AvatarTextSize + 65;
 
 				index = int.MaxValue;
 				reload = false;
@@ -159,10 +159,10 @@ namespace PortraitStats
 
 				drawTexture(r, activeCrew[i].TraitPos, activeCrew[i].IconColor);
 
-				r.x += 26;
-				r.y += 9;
-				r.height = 13;
-				r.width = 62;
+				r.x += manager.AvatarSize - 17;
+				r.y -= 42;
+				r.height = 64;
+				r.width = 13;
 
 				drawTexture(r, activeCrew[i].LevelPos, old);
 			}
