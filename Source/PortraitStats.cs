@@ -40,9 +40,13 @@ namespace PortraitStats
 		private int index;
 		private Vector2 screenPos = new Vector2();
 		private KerbalGUIManager manager;
+		private static Texture2D atlas;
 
 		private void Start()
 		{
+			if (atlas == null)
+				atlas = GameDatabase.Instance.GetTexture("PortraitStats/Icons/Atlas", false);
+
 			GameEvents.onVesselWasModified.Add(vesselCheck);
 			GameEvents.onVesselChange.Add(vesselCheck);
 
@@ -82,7 +86,7 @@ namespace PortraitStats
 					currentCrew.Add(k.name, new KerbalTrait(k));
 				}
 
-				float button = KerbalGUIManager.ActiveCrew.Count > 3 ? 30 : 2;
+				float button = KerbalGUIManager.ActiveCrew.Count > 3 ? 28 : 0;
 
 				screenPos.x = Screen.width - manager.AvatarSpacing - manager.AvatarSize - button;
 				screenPos.y = Screen.height - manager.AvatarSpacing - manager.AvatarSize - manager.AvatarTextSize + 68;
@@ -153,19 +157,35 @@ namespace PortraitStats
 
 				Rect r = new Rect(leftOffset, screenPos.y, 24, 24);
 
-				GUI.color = activeCrew[i].IconColor;
+				drawTexture(r, activeCrew[i].TraitPos, activeCrew[i].IconColor);
 
-				GUI.DrawTextureWithTexCoords(r, PortraitStatsSetup.atlas, activeCrew[i].TraitPos);
-
-				GUI.color = old;
-
-				r.x += 24;
+				r.x += 26;
 				r.y += 9;
-				r.height = 14;
-				r.width = 68;
+				r.height = 13;
+				r.width = 62;
 
-				GUI.DrawTextureWithTexCoords(r, PortraitStatsSetup.atlas, activeCrew[i].LevelPos);
+				drawTexture(r, activeCrew[i].LevelPos, old);
 			}
+		}
+
+		private void drawTexture(Rect pos, Rect coords, Color c)
+		{
+			GUI.color = Color.black;
+
+			pos.x -= 1;
+			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
+			pos.x += 2;
+			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
+			pos.x -= 1;
+			pos.y -= 1;
+			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
+			pos.y += 2;
+			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
+			pos.y -= 1;
+
+			GUI.color = c;
+
+			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
 		}
 
 		private void vesselCheck(Vessel v)
