@@ -89,7 +89,7 @@ namespace PortraitStats
 				float button = KerbalGUIManager.ActiveCrew.Count > 3 ? 27 : -1;
 
 				screenPos.x = Screen.width - manager.AvatarSpacing - manager.AvatarSize - button;
-				screenPos.y = Screen.height - manager.AvatarSpacing - manager.AvatarSize - manager.AvatarTextSize + 65;
+				screenPos.y = Screen.height - manager.AvatarSpacing - manager.AvatarTextSize - 24;
 
 				index = int.MaxValue;
 				reload = false;
