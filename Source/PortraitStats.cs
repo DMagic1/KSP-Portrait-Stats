@@ -24,11 +24,9 @@ THE SOFTWARE.
 */
 #endregion
 
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
-using Tooltips;
 
 namespace PortraitStats
 {
@@ -49,8 +47,6 @@ namespace PortraitStats
         private double toolTipTime;
         private GUIStyle tipStyle;
         private int currentToolTip = -1;
-
-        private static int windowID = typeof(PortraitStats).FullName.GetHashCode();
 
 		private void Start()
 		{
