@@ -35,12 +35,18 @@ namespace PortraitStats
 	public class PortraitStats : MonoBehaviour
 	{
 		private Dictionary<string, KerbalTrait> currentCrew = new Dictionary<string, KerbalTrait>();
-		private List<KerbalTrait> activeCrew = new List<KerbalTrait>();
-		private bool reload;
+        private List<KerbalTrait> activeCrew = new List<KerbalTrait>();
+        private List<ProtoCrewMember> activePCM = new List<ProtoCrewMember>();
+        private bool reload;
 		private int index;
 		private Vector2 screenPos = new Vector2();
 		private KerbalGUIManager manager;
 		private static Texture2D atlas;
+
+        private Rect tooltipPosition;
+        private double toolTipTime;
+        private GUIStyle tipStyle;
+        private int currentToolTip = -1;
 
 		private void Start()
 		{
@@ -57,7 +63,7 @@ namespace PortraitStats
 
 			reload = true;
 
-			RenderingManager.AddToPostDrawQueue(5, drawLabels);
+            RenderingManager.AddToPostDrawQueue(5, drawLabels);
 		}
 
 		private void OnDestroy()
@@ -100,17 +106,19 @@ namespace PortraitStats
 				index = manager.startIndex;
 
 				activeCrew.Clear();
+                activePCM.Clear();
 
 				for (int i = index + 2; i >= index; i--)
 				{
 					if (i >= KerbalGUIManager.ActiveCrew.Count)
 						continue;
 
-					string name = KerbalGUIManager.ActiveCrew[i].name;
+					Kerbal kerbal = KerbalGUIManager.ActiveCrew[i];
 
-					if (currentCrew.ContainsKey(name))
+					if (currentCrew.ContainsKey(kerbal.name))
 					{
-						activeCrew.Add(currentCrew[name]);
+                        activeCrew.Add(currentCrew[kerbal.name]);
+                        activePCM.Add(kerbal.protoCrewMember);
 					}
 				}
 			}
@@ -133,6 +141,7 @@ namespace PortraitStats
 
 			Color old = GUI.color;
 
+            bool drawTooltip = false;
 			for(int i = 0; i < activeCrew.Count; i++)
 			{
 				float leftOffset;
@@ -165,8 +174,30 @@ namespace PortraitStats
 				r.width = 13;
 
 				drawTexture(r, activeCrew[i].LevelPos, old);
-			}
-		}
+
+                // Tooltip handling
+                float minX = leftOffset;
+                float maxX = minX + manager.AvatarSize;
+                float minY = screenPos.y - 44;
+                float maxY = minY + 70;
+                Vector2 mpos = Event.current.mousePosition;
+                if (mpos.x > minX && mpos.x < maxX && mpos.y > minY && mpos.y < maxY)
+                {
+                    if (currentToolTip != i)
+                    {
+                        currentToolTip = i;
+                        toolTipTime = Time.fixedTime;
+                    }
+                    drawTooltip = true;
+                }
+            }
+
+            // Tooltip drawing - do this after the loop to make sure it gets drawn on top
+            if (drawTooltip)
+            {
+                DrawToolTip(currentToolTip);
+            }
+        }
 
 		private void drawTexture(Rect pos, Rect coords, Color c)
 		{
@@ -206,5 +237,51 @@ namespace PortraitStats
 			return (KerbalGUIManager)fields[0].GetValue(null);
 		}
 
+        private void DrawToolTip(int index)
+        {
+            // Do setup of styles
+            if (tipStyle == null)
+            {
+                // Tooltip style setup
+                tipStyle = new GUIStyle(GUI.skin.box);
+                tipStyle.wordWrap = true;
+                tipStyle.stretchHeight = true;
+                tipStyle.normal.textColor = Color.white;
+                tipStyle.richText = true;
+                tipStyle.alignment = TextAnchor.UpperLeft;
+            }
+
+            GUI.depth = 0;
+            if (Time.fixedTime > toolTipTime + 0.4)
+            {
+                ProtoCrewMember pcm = activePCM[index];
+                string text = "<b>" + pcm.experienceTrait.Title + "</b>";
+                if (!string.IsNullOrEmpty(pcm.experienceTrait.Description))
+                {
+                    text += "\n" + pcm.experienceTrait.Description;
+                }
+                if (!string.IsNullOrEmpty(pcm.experienceTrait.DescriptionEffects))
+                {
+                    text += "\n<b>Effects</b>\n";
+                    text += pcm.experienceTrait.DescriptionEffects;
+                }
+
+                GUIContent tip = new GUIContent(text);
+
+                Vector2 textDimensions = tipStyle.CalcSize(tip);
+                if (textDimensions.x > 320)
+                {
+                    textDimensions.x = 320;
+                    textDimensions.y = tipStyle.CalcHeight(tip, 320);
+                }
+                tooltipPosition.width = textDimensions.x;
+                tooltipPosition.height = textDimensions.y;
+                tooltipPosition.x = Event.current.mousePosition.x + tooltipPosition.width > Screen.width ?
+                    Screen.width - tooltipPosition.width : Event.current.mousePosition.x;
+                tooltipPosition.y = Event.current.mousePosition.y - tooltipPosition.height - 8;
+
+                GUI.Label(tooltipPosition, tip, tipStyle);
+            }
+        }
 	}
 }
