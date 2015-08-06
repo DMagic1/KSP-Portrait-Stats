@@ -37,20 +37,58 @@ namespace PortraitStats
 		private Dictionary<string, KerbalTrait> currentCrew = new Dictionary<string, KerbalTrait>();
 		private List<KerbalTrait> activeCrew = new List<KerbalTrait>();
 		private bool reload;
+		private bool careerMode;
 		private int index;
 		private Vector2 screenPos = new Vector2();
 		private KerbalGUIManager manager;
 		private static Texture2D atlas;
 
+		private Rect tooltipPosition;
+		private double toolTipTime;
+
+		private int currentToolTip = -1;
+
+		private static bool loaded = false;
+		private static GUIStyle tipStyle;
+		private static ConfigNode settingsFile;
+		private static bool traitTooltip;
+		private static bool expTooltip;
+
 		private void Start()
 		{
-			if (atlas == null)
+			if (!loaded)
+			{
+				loaded = true;
+
 				atlas = GameDatabase.Instance.GetTexture("PortraitStats/Icons/Atlas", false);
+
+				settingsFile = GameDatabase.Instance.GetConfigNode("PortraitStats/Settings/Portrait_Stats_Config");
+				if (settingsFile != null)
+				{
+					if (settingsFile.HasValue("traitToolTip"))
+					{
+						bool.TryParse(settingsFile.GetValue("traitToolTip"), out traitTooltip);
+					}
+					if (settingsFile.HasValue("expToolTip"))
+					{
+						bool.TryParse(settingsFile.GetValue("expToolTip"), out expTooltip);
+					}
+				}
+
+				tipStyle = new GUIStyle(GUI.skin.box);
+				tipStyle.wordWrap = true;
+				tipStyle.stretchHeight = true;
+				tipStyle.normal.textColor = Color.white;
+				tipStyle.richText = true;
+				tipStyle.alignment = TextAnchor.UpperLeft;
+			}
 
 			GameEvents.onVesselWasModified.Add(vesselCheck);
 			GameEvents.onVesselChange.Add(vesselCheck);
 
 			manager = findKerbalGUIManager();
+
+			careerMode = HighLogic.CurrentGame.Mode == Game.Modes.CAREER;
 
 			if (manager == null)
 				Destroy(this);
@@ -66,6 +104,12 @@ namespace PortraitStats
 			GameEvents.onVesselChange.Remove(vesselCheck);
 
 			RenderingManager.RemoveFromPostDrawQueue(5, drawLabels);
+		}
+
+		private void Update()
+		{
+			if ((int)Time.time % 10 == 0)
+				reload = true;
 		}
 
 		private void LateUpdate()
@@ -132,6 +176,8 @@ namespace PortraitStats
 			}
 
 			Color old = GUI.color;
+			bool drawTooltip = false;
+			bool drawTraitTooltip = false;
 
 			for(int i = 0; i < activeCrew.Count; i++)
 			{
@@ -159,12 +205,54 @@ namespace PortraitStats
 
 				drawTexture(r, activeCrew[i].TraitPos, activeCrew[i].IconColor);
 
-				r.x += manager.AvatarSize - 17;
-				r.y -= 42;
-				r.height = 64;
-				r.width = 13;
+				Vector4 v = new Vector4(r.x - 2, r.x + 26, r.y - 2, r.y + 26);
+				Vector2 mpos = Event.current.mousePosition;
 
-				drawTexture(r, activeCrew[i].LevelPos, old);
+				if (traitTooltip)
+				{
+					if (mpos.x > v.x && mpos.x < v.y && mpos.y > v.z && mpos.y < v.w)
+					{
+						if (currentToolTip != i)
+						{
+							currentToolTip = i;
+							toolTipTime = Time.fixedTime;
+						}
+						drawTooltip = true;
+						drawTraitTooltip = true;
+					}
+				}
+
+				if (careerMode)
+				{
+					r.x += manager.AvatarSize - 17;
+					r.y -= 42;
+					r.height = 64;
+					r.width = 13;
+
+					drawTexture(r, activeCrew[i].LevelPos, old);
+
+					if (!drawTooltip && expTooltip)
+					{
+						v = new Vector4(r.x - 2, r.x + 15, r.y - 2, r.y + 66);
+						mpos = Event.current.mousePosition;
+						if (mpos.x > v.x && mpos.x < v.y && mpos.y > v.z && mpos.y < v.w)
+						{
+							if (currentToolTip != i)
+							{
+								currentToolTip = i;
+								toolTipTime = Time.fixedTime;
+							}
+							drawTooltip = true;
+							drawTraitTooltip = false;
+						}
+					}
+				}
+			}
+
+			// Tooltip drawing - do this after the loop to make sure it gets drawn on top
+			if (drawTooltip)
+			{
+				DrawToolTip(currentToolTip, drawTraitTooltip);
 			}
 		}
 
@@ -204,6 +292,70 @@ namespace PortraitStats
 				return null;
 
 			return (KerbalGUIManager)fields[0].GetValue(null);
+		}
+
+		private void DrawToolTip(int index, bool drawTraitTip)
+		{
+			GUI.depth = 0;
+			if (Time.fixedTime > toolTipTime + 0.4)
+			{
+				ProtoCrewMember pcm = activeCrew[index].ProtoCrew;
+				string text = "";
+
+				if (drawTraitTip)
+				{
+					text = "<b>" + pcm.experienceTrait.Title + "</b>";
+					if (!string.IsNullOrEmpty(pcm.experienceTrait.Description))
+					{
+						text += "\n" + pcm.experienceTrait.Description;
+					}
+					if (!string.IsNullOrEmpty(pcm.experienceTrait.DescriptionEffects))
+					{
+						text += "\n<b>Effects</b>\n";
+						text += pcm.experienceTrait.DescriptionEffects;
+					}
+				}
+				else
+				{
+					text = "<b>" + pcm.name + "</b>";
+					int countC = pcm.careerLog.Count;
+					if (countC > 0)
+					{
+						text += "\n<b>Career Log:</b>";
+						for (int i = 0; i < countC; i++)
+						{
+							FlightLog.Entry entry = pcm.careerLog[i];
+							text += "\n" + entry.type + (string.IsNullOrEmpty(entry.target) ? ": " + entry.target : "");
+						}
+					}
+					int countF = pcm.flightLog.Count;
+					if (countF > 0)
+					{
+						text += "\n<b>Flight Log:</b>";
+						for (int i = 0; i < countF; i++)
+						{
+							FlightLog.Entry entry = pcm.flightLog[i];
+							text += "\n" + entry.type + (string.IsNullOrEmpty(entry.target) ? ": " + entry.target : "");
+						}
+					}
+				}
+
+				GUIContent tip = new GUIContent(text);
+
+				Vector2 textDimensions = tipStyle.CalcSize(tip);
+				if (textDimensions.x > 320)
+				{
+					textDimensions.x = 320;
+					textDimensions.y = tipStyle.CalcHeight(tip, 320);
+				}
+				tooltipPosition.width = textDimensions.x;
+				tooltipPosition.height = textDimensions.y;
+				tooltipPosition.x = Event.current.mousePosition.x + tooltipPosition.width > Screen.width ?
+					Screen.width - tooltipPosition.width : Event.current.mousePosition.x;
+				tooltipPosition.y = Event.current.mousePosition.y - tooltipPosition.height - 8;
+
+				GUI.Label(tooltipPosition, tip, tipStyle);
+			}
 		}
 
 	}
