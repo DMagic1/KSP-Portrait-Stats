@@ -56,6 +56,18 @@ namespace PortraitStats
 
 		private void Start()
 		{
+			GameEvents.onVesselWasModified.Add(vesselCheck);
+			GameEvents.onVesselChange.Add(vesselCheck);
+
+			manager = findKerbalGUIManager();
+
+			careerMode = HighLogic.CurrentGame.Mode == Game.Modes.CAREER;
+
+			if (manager == null)
+				Destroy(this);
+
+			reload = true;
+
 			if (!loaded)
 			{
 				loaded = true;
@@ -74,26 +86,7 @@ namespace PortraitStats
 						bool.TryParse(settingsFile.GetValue("expToolTip"), out expTooltip);
 					}
 				}
-
-				tipStyle = new GUIStyle(GUI.skin.box);
-				tipStyle.wordWrap = true;
-				tipStyle.stretchHeight = true;
-				tipStyle.normal.textColor = Color.white;
-				tipStyle.richText = true;
-				tipStyle.alignment = TextAnchor.UpperLeft;
 			}
-
-			GameEvents.onVesselWasModified.Add(vesselCheck);
-			GameEvents.onVesselChange.Add(vesselCheck);
-
-			manager = findKerbalGUIManager();
-
-			careerMode = HighLogic.CurrentGame.Mode == Game.Modes.CAREER;
-
-			if (manager == null)
-				Destroy(this);
-
-			reload = true;
 
 			RenderingManager.AddToPostDrawQueue(5, drawLabels);
 		}
@@ -205,12 +198,9 @@ namespace PortraitStats
 
 				drawTexture(r, activeCrew[i].TraitPos, activeCrew[i].IconColor);
 
-				Vector4 v = new Vector4(r.x - 2, r.x + 26, r.y - 2, r.y + 26);
-				Vector2 mpos = Event.current.mousePosition;
-
 				if (traitTooltip)
 				{
-					if (mpos.x > v.x && mpos.x < v.y && mpos.y > v.z && mpos.y < v.w)
+					if (r.Contains(Event.current.mousePosition))
 					{
 						if (currentToolTip != i)
 						{
@@ -233,9 +223,7 @@ namespace PortraitStats
 
 					if (!drawTooltip && expTooltip)
 					{
-						v = new Vector4(r.x - 2, r.x + 15, r.y - 2, r.y + 66);
-						mpos = Event.current.mousePosition;
-						if (mpos.x > v.x && mpos.x < v.y && mpos.y > v.z && mpos.y < v.w)
+						if (r.Contains(Event.current.mousePosition))
 						{
 							if (currentToolTip != i)
 							{
@@ -296,10 +284,24 @@ namespace PortraitStats
 
 		private void DrawToolTip(int index, bool drawTraitTip)
 		{
+			if (tipStyle == null)
+			{
+				tipStyle = new GUIStyle(GUI.skin.box);
+				tipStyle.wordWrap = true;
+				tipStyle.stretchHeight = true;
+				tipStyle.normal.textColor = Color.white;
+				tipStyle.richText = true;
+				tipStyle.alignment = TextAnchor.UpperLeft;
+			}
+
+
 			GUI.depth = 0;
 			if (Time.fixedTime > toolTipTime + 0.4)
 			{
 				ProtoCrewMember pcm = activeCrew[index].ProtoCrew;
+				if (pcm == null)
+					return;
+
 				string text = "";
 
 				if (drawTraitTip)
@@ -325,7 +327,7 @@ namespace PortraitStats
 						for (int i = 0; i < countC; i++)
 						{
 							FlightLog.Entry entry = pcm.careerLog[i];
-							text += "\n" + entry.type + (string.IsNullOrEmpty(entry.target) ? ": " + entry.target : "");
+							text += "\n" + entry.type + (string.IsNullOrEmpty(entry.target) ? "" : ": " + entry.target);
 						}
 					}
 					int countF = pcm.flightLog.Count;
@@ -335,7 +337,7 @@ namespace PortraitStats
 						for (int i = 0; i < countF; i++)
 						{
 							FlightLog.Entry entry = pcm.flightLog[i];
-							text += "\n" + entry.type + (string.IsNullOrEmpty(entry.target) ? ": " + entry.target : "");
+							text += "\n" + entry.type + (string.IsNullOrEmpty(entry.target) ? "" : ": " + entry.target);
 						}
 					}
 				}
