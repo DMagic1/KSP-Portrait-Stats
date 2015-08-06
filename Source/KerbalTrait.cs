@@ -34,11 +34,18 @@ namespace PortraitStats
 		private Rect levelPos;
 		private Rect traitPos;
 		private Color iconColor;
+		private ProtoCrewMember protoCrew;
 
 		public KerbalTrait(Kerbal k)
 		{
+			protoCrew = k.protoCrewMember;
 			traitPos = crewType(k.protoCrewMember.experienceTrait);
 			levelPos = levelRect(k.protoCrewMember.experienceLevel);
+		}
+
+		public ProtoCrewMember ProtoCrew
+		{
+			get { return protoCrew; }
 		}
 
 		public Rect LevelPos
