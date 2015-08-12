@@ -212,7 +212,7 @@ namespace PortraitStats
 					}
 				}
 
-				if (careerMode)
+				if (careerMode || expTooltip)
 				{
 					r.x += manager.AvatarSize - 17;
 					r.y -= 42;
@@ -294,11 +294,11 @@ namespace PortraitStats
 				tipStyle.alignment = TextAnchor.UpperLeft;
 			}
 
-
 			GUI.depth = 0;
 			if (Time.fixedTime > toolTipTime + 0.4)
 			{
 				ProtoCrewMember pcm = activeCrew[index].ProtoCrew;
+
 				if (pcm == null)
 					return;
 
@@ -327,7 +327,7 @@ namespace PortraitStats
 						for (int i = 0; i < countC; i++)
 						{
 							FlightLog.Entry entry = pcm.careerLog[i];
-							text += "\n" + entry.type + (string.IsNullOrEmpty(entry.target) ? "" : ": " + entry.target);
+							text += flightLogEntry(entry);
 						}
 					}
 					int countF = pcm.flightLog.Count;
@@ -337,7 +337,7 @@ namespace PortraitStats
 						for (int i = 0; i < countF; i++)
 						{
 							FlightLog.Entry entry = pcm.flightLog[i];
-							text += "\n" + entry.type + (string.IsNullOrEmpty(entry.target) ? "" : ": " + entry.target);
+							text += flightLogEntry(entry);
 						}
 					}
 				}
@@ -358,6 +358,34 @@ namespace PortraitStats
 
 				GUI.Label(tooltipPosition, tip, tipStyle);
 			}
+		}
+
+		private string flightLogEntry(FlightLog.Entry entry)
+		{
+			string s = "";
+
+			switch (entry.type)
+			{
+				case "Recover":
+					s = "Successfully Recovered";
+					break;
+				case "Die":
+					s = "Died";
+					break;
+				case "Spawn":
+					s = "Spawned";
+					break;
+				case "Training":
+					s = "Trained";
+					break;
+				default:
+					s = entry.type;
+					break;
+			}
+
+			string text = "\n" + entry.flight + ": " + s + (string.IsNullOrEmpty(entry.target) ? "" : ": " + entry.target);
+
+			return text;
 		}
 
 	}
