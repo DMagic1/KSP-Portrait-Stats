@@ -235,6 +235,8 @@ namespace PortraitStats
 						}
 					}
 				}
+				else
+					GUI.color = old;
 			}
 
 			// Tooltip drawing - do this after the loop to make sure it gets drawn on top
@@ -320,25 +322,17 @@ namespace PortraitStats
 				else
 				{
 					text = "<b>" + pcm.name + "</b>";
-					int countC = pcm.careerLog.Count;
-					if (countC > 0)
+					string log = KerbalRoster.GenerateExperienceLog(pcm.careerLog);
+					if (!string.IsNullOrEmpty(log))
 					{
-						text += "\n<b>Career Log:</b>";
-						for (int i = 0; i < countC; i++)
-						{
-							FlightLog.Entry entry = pcm.careerLog[i];
-							text += flightLogEntry(entry);
-						}
+						text += "\n<b>Career Log:</b>\n";
+						text += log;
 					}
-					int countF = pcm.flightLog.Count;
-					if (countF > 0)
+					log = KerbalRoster.GenerateExperienceLog(pcm.flightLog);
+					if (!string.IsNullOrEmpty(log))
 					{
-						text += "\n<b>Flight Log:</b>";
-						for (int i = 0; i < countF; i++)
-						{
-							FlightLog.Entry entry = pcm.flightLog[i];
-							text += flightLogEntry(entry);
-						}
+						text += "\n<b>Current Flight:</b>\n";
+						text += log;
 					}
 				}
 
@@ -358,34 +352,6 @@ namespace PortraitStats
 
 				GUI.Label(tooltipPosition, tip, tipStyle);
 			}
-		}
-
-		private string flightLogEntry(FlightLog.Entry entry)
-		{
-			string s = "";
-
-			switch (entry.type)
-			{
-				case "Recover":
-					s = "Successfully Recovered";
-					break;
-				case "Die":
-					s = "Died";
-					break;
-				case "Spawn":
-					s = "Spawned";
-					break;
-				case "Training":
-					s = "Trained";
-					break;
-				default:
-					s = entry.type;
-					break;
-			}
-
-			string text = "\n" + entry.flight + ": " + s + (string.IsNullOrEmpty(entry.target) ? "" : ": " + entry.target);
-
-			return text;
 		}
 
 	}
