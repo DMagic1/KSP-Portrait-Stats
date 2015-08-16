@@ -69,25 +69,25 @@ namespace PortraitStats
 			{
 				case "Pilot":
 					iconColor = XKCDColors.PastelRed;
-					return new Rect(0, 0.796875f, 0.1875f, 0.1875f);
+					return new Rect(0, 0.78125f, 0.203125f, 0.203125f);
 				case "Engineer":
-					iconColor = XKCDColors.SapGreen;
-					return new Rect(0.203125f, 0.796875f, 0.1875f, 0.1875f);
+					iconColor = XKCDColors.DarkYellow;
+					return new Rect(0.203125f, 0.78125f, 0.203125f, 0.203125f);
 				case "Scientist":
 					iconColor = XKCDColors.DirtyBlue;
-					return new Rect(0.40625f, 0.796875f, 0.1875f, 0.1875f);
+					return new Rect(0.4140625f, 0.78125f, 0.203125f, 0.203125f);
 				case "Tourist":
-					iconColor = XKCDColors.OrangePink;
-					return new Rect(0.609375f, 0.796875f, 0.1875f, 0.1875f);
+					iconColor = XKCDColors.SapGreen;
+					return new Rect(0.6171875f, 0.78125f, 0.203125f, 0.203125f);
 				default:
 					iconColor = XKCDColors.White;
-					return new Rect(0.8125f, 0.8125f, 0.1875f, 0.1875f);
+					return new Rect(0.8125f, 0.796875f, 0.203125f, 0.203125f);
 			}
 		}
 
 		private Rect levelRect(int i)
 		{
-			return new Rect(i * 0.171875f, 0, 0.140625f, 0.75f);
+			return new Rect((i * 0.171875f) - (i * 0.0078125f), 0, 0.1640625f, 0.765625f);
 		}
 	}
 }
