@@ -123,10 +123,10 @@ namespace PortraitStats
 					currentCrew.Add(k.name, new KerbalTrait(k));
 				}
 
-				float button = KerbalGUIManager.ActiveCrew.Count > 3 ? 27 : -1;
+				float button = KerbalGUIManager.ActiveCrew.Count > 3 ? 28 : 0;
 
 				screenPos.x = Screen.width - manager.AvatarSpacing - manager.AvatarSize - button;
-				screenPos.y = Screen.height - manager.AvatarSpacing - manager.AvatarTextSize - 24;
+				screenPos.y = Screen.height - manager.AvatarSpacing - manager.AvatarTextSize - 26;
 
 				index = int.MaxValue;
 				reload = false;
@@ -180,23 +180,39 @@ namespace PortraitStats
 				 * differently based on how many Kerbals are present. Crews with 2 or 3 Kerbals require
 				 * special cases...
 				 */
-				if (crewCount == 2)
-					leftOffset = screenPos.x - ((i == 0 ? 1 : 0) * (manager.AvatarSpacing + manager.AvatarSize));
-				else if (crewCount == 3)
+				switch (crewCount)
 				{
-					int j = i;
-					if (j == 1)
-						j = 2;
-					else if (j == 2)
-						j = 1;
-					leftOffset = screenPos.x - (j * (manager.AvatarSpacing + manager.AvatarSize));
+					case 2:
+						leftOffset = screenPos.x - ((i == 0 ? 1 : 0) * (manager.AvatarSpacing + manager.AvatarSize));
+						break;
+					case 3:
+						int j = 0;
+						switch (i)
+						{
+							case 1:
+								j = 2;
+								break;
+							case 2:
+								j = 1;
+								break;
+							default:
+								j = i;
+								break;
+						}
+						leftOffset = screenPos.x - (j * (manager.AvatarSpacing + manager.AvatarSize));
+						break;
+					default:
+						leftOffset = screenPos.x - (i * (manager.AvatarSpacing + manager.AvatarSize));
+						break;
 				}
-				else
-					leftOffset = screenPos.x - (i * (manager.AvatarSpacing + manager.AvatarSize));
 
-				Rect r = new Rect(leftOffset, screenPos.y, 24, 24);
+				Rect r = new Rect(leftOffset, screenPos.y, 26, 26);
 
-				drawTexture(r, activeCrew[i].TraitPos, activeCrew[i].IconColor);
+				GUI.color = activeCrew[i].IconColor;
+
+				GUI.DrawTextureWithTexCoords(r, atlas, activeCrew[i].TraitPos);
+
+				GUI.color = old;
 
 				if (traitTooltip)
 				{
@@ -214,12 +230,12 @@ namespace PortraitStats
 
 				if (careerMode || expTooltip)
 				{
-					r.x += manager.AvatarSize - 17;
-					r.y -= 42;
-					r.height = 64;
-					r.width = 13;
+					r.x += manager.AvatarSize - 18;
+					r.y -= 48;
+					r.height = 72;
+					r.width = 16;
 
-					drawTexture(r, activeCrew[i].LevelPos, old);
+					GUI.DrawTextureWithTexCoords(r, atlas, activeCrew[i].LevelPos);
 
 					if (!drawTooltip && expTooltip)
 					{
@@ -235,8 +251,6 @@ namespace PortraitStats
 						}
 					}
 				}
-				else
-					GUI.color = old;
 			}
 
 			// Tooltip drawing - do this after the loop to make sure it gets drawn on top
@@ -244,26 +258,6 @@ namespace PortraitStats
 			{
 				DrawToolTip(currentToolTip, drawTraitTooltip);
 			}
-		}
-
-		private void drawTexture(Rect pos, Rect coords, Color c)
-		{
-			GUI.color = Color.black;
-
-			pos.x -= 1;
-			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
-			pos.x += 2;
-			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
-			pos.x -= 1;
-			pos.y -= 1;
-			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
-			pos.y += 2;
-			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
-			pos.y -= 1;
-
-			GUI.color = c;
-
-			GUI.DrawTextureWithTexCoords(pos, atlas, coords);
 		}
 
 		private void vesselCheck(Vessel v)
@@ -308,7 +302,11 @@ namespace PortraitStats
 
 				if (drawTraitTip)
 				{
-					text = "<b>" + pcm.experienceTrait.Title + "</b>";
+					text = "<b>" + pcm.name + "</b>";
+					if (pcm.isBadass)
+						text += " - Badass";
+					text += "\nCourage: " + pcm.courage.ToString("P0") + " Stupidity: " + pcm.stupidity.ToString("P0");
+					text += "\n<b>" + pcm.experienceTrait.Title + "</b>";
 					if (!string.IsNullOrEmpty(pcm.experienceTrait.Description))
 					{
 						text += "\n" + pcm.experienceTrait.Description;
@@ -322,6 +320,8 @@ namespace PortraitStats
 				else
 				{
 					text = "<b>" + pcm.name + "</b>";
+					if (careerMode)
+						text += "\n<b>Experience:</b> " + pcm.experience.ToString("F0") + "/" + KerbalRoster.GetExperienceLevelRequirement(pcm.experienceLevel);
 					string log = KerbalRoster.GenerateExperienceLog(pcm.careerLog);
 					if (!string.IsNullOrEmpty(log))
 					{
