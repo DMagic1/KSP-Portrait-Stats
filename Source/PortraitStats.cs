@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
 using UnityEngine;
 
 namespace PortraitStats
@@ -115,7 +116,17 @@ namespace PortraitStats
 
 			if (reload)
 			{
-				foreach (Kerbal k in KerbalGUIManager.ActiveCrew)
+                List<string> crewtodelete = new List<string>();
+                foreach (KeyValuePair<string, KerbalTrait> crew in currentCrew)
+                {
+                    Kerbal fndkerbal = KerbalGUIManager.ActiveCrew.Where(x => x.name == crew.Key).FirstOrDefault();
+                    if (fndkerbal != null)
+                        continue;
+
+                    crewtodelete.Add(crew.Key);
+                }
+                crewtodelete.ForEach(id => currentCrew.Remove(id));
+                foreach (Kerbal k in KerbalGUIManager.ActiveCrew)
 				{
 					if (currentCrew.ContainsKey(k.name))
 						continue;
@@ -155,19 +166,22 @@ namespace PortraitStats
 
 		private void drawLabels()
 		{
-			int crewCount = KerbalGUIManager.ActiveCrew.Count;
+            if (FlightGlobals.ActiveVessel.isEVA)
+                return;
+
+            switch (CameraManager.Instance.currentCameraMode)
+            {
+                case CameraManager.CameraMode.Map:
+                case CameraManager.CameraMode.Internal:
+                case CameraManager.CameraMode.IVA:
+                    return;
+            }
+
+            int crewCount = KerbalGUIManager.ActiveCrew.Count;
 
 			if (crewCount <= 0)
 				return;
-
-			switch (CameraManager.Instance.currentCameraMode)
-			{
-				case CameraManager.CameraMode.Map:
-				case CameraManager.CameraMode.Internal:
-				case CameraManager.CameraMode.IVA:
-					return;
-			}
-
+            		
 			Color old = GUI.color;
 			bool drawTooltip = false;
 			bool drawTraitTooltip = false;
