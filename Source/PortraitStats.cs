@@ -54,8 +54,13 @@ namespace PortraitStats
 		private static bool loaded = false;
 		private static GUIStyle tipStyle;
 		private static ConfigNode settingsFile;
-		private static bool traitTooltip;
+		private static bool traitTooltip = true;
 		private static bool expTooltip;
+		public static Color pilotColor = XKCDColors.PastelRed;
+		public static Color engineerColor = XKCDColors.DarkYellow;
+		public static Color scientistColor = XKCDColors.DirtyBlue;
+		public static Color touristColor = XKCDColors.SapGreen;
+		public static Color unknownColor = XKCDColors.White;
 
 		private void Start()
 		{
@@ -83,16 +88,37 @@ namespace PortraitStats
 				{
 					if (settingsFile.HasValue("traitToolTip"))
 					{
-						bool.TryParse(settingsFile.GetValue("traitToolTip"), out traitTooltip);
+						if (!bool.TryParse(settingsFile.GetValue("traitToolTip"), out traitTooltip))
+							traitTooltip = true;
 					}
 					if (settingsFile.HasValue("expToolTip"))
-					{
 						bool.TryParse(settingsFile.GetValue("expToolTip"), out expTooltip);
-					}
+					if (settingsFile.HasValue("pilotColor"))
+						pilotColor = parseColor(settingsFile, "pilotColor", pilotColor);
+					if (settingsFile.HasValue("engineerColor"))
+						engineerColor = parseColor(settingsFile, "engineerColor", engineerColor);
+					if (settingsFile.HasValue("scientistColor"))
+						scientistColor = parseColor(settingsFile, "scientistColor", scientistColor);
+					if (settingsFile.HasValue("touristColor"))
+						touristColor = parseColor(settingsFile, "touristColor", touristColor);
+					if (settingsFile.HasValue("unknownClassColor"))
+						unknownColor = parseColor(settingsFile, "unknownClassColor", unknownColor);
 				}
 			}
 
 			RenderingManager.AddToPostDrawQueue(5, drawLabels);
+		}
+
+		private Color parseColor(ConfigNode node, string name, Color c)
+		{
+			try
+			{
+				return ConfigNode.ParseColor(node.GetValue(name));
+			}
+			catch
+			{
+				return c;
+			}
 		}
 
 		private void OnDestroy()
