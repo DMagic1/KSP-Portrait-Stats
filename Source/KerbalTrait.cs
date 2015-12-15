@@ -65,22 +65,22 @@ namespace PortraitStats
 
 		private Rect crewType(ExperienceTrait t)
 		{
-			switch (t.Title)
+			switch (t.TypeName)
 			{
 				case "Pilot":
-					iconColor = XKCDColors.PastelRed;
+					iconColor = PortraitStats.pilotColor;
 					return new Rect(0, 0.78125f, 0.203125f, 0.203125f);
 				case "Engineer":
-					iconColor = XKCDColors.DarkYellow;
+					iconColor = PortraitStats.engineerColor;
 					return new Rect(0.203125f, 0.78125f, 0.203125f, 0.203125f);
 				case "Scientist":
-					iconColor = XKCDColors.DirtyBlue;
+					iconColor = PortraitStats.scientistColor;
 					return new Rect(0.4140625f, 0.78125f, 0.203125f, 0.203125f);
 				case "Tourist":
-					iconColor = XKCDColors.SapGreen;
+					iconColor = PortraitStats.touristColor;
 					return new Rect(0.6171875f, 0.78125f, 0.203125f, 0.203125f);
 				default:
-					iconColor = XKCDColors.White;
+					iconColor = PortraitStats.unknownColor;
 					return new Rect(0.8125f, 0.796875f, 0.203125f, 0.203125f);
 			}
 		}
