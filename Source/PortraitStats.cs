@@ -24,10 +24,13 @@ THE SOFTWARE.
 */
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 using UnityEngine;
+using KSP.UI.Screens.Flight;
+using UnityEngine.UI;
 
 namespace PortraitStats
 {
@@ -36,44 +39,39 @@ namespace PortraitStats
 	public class PortraitStats : MonoBehaviour
 	{
 		private Dictionary<string, KerbalTrait> currentCrew = new Dictionary<string, KerbalTrait>();
-		private List<KerbalTrait> activeCrew = new List<KerbalTrait>();
 		private bool reload;
-		private bool careerMode;
-		private int index;
-		private Vector2 screenPos = new Vector2();
-		private KerbalGUIManager manager;
-		private float timer;
+		public bool careerMode;
+		private int crewCount;
 
-		private static Texture2D atlas;
-
-		private Rect tooltipPosition;
-		private double toolTipTime;
-
-		private int currentToolTip = -1;
+		public static Texture2D atlas;
 
 		private static bool loaded = false;
-		private static GUIStyle tipStyle;
 		private static ConfigNode settingsFile;
-		private static bool traitTooltip = true;
-		private static bool expTooltip;
+		public static bool traitTooltip = true;
+		public static bool expTooltip;
+		public static bool showAlways;
+		public static bool useIcon;
 		public static Color pilotColor = XKCDColors.PastelRed;
 		public static Color engineerColor = XKCDColors.DarkYellow;
 		public static Color scientistColor = XKCDColors.DirtyBlue;
 		public static Color touristColor = XKCDColors.SapGreen;
 		public static Color unknownColor = XKCDColors.White;
 
+		private static PortraitStats instance;
+
+		public static PortraitStats Instance
+		{
+			get { return instance; }
+		}
+
 		private void Start()
 		{
+			instance = this;
+
 			GameEvents.onVesselWasModified.Add(vesselCheck);
 			GameEvents.onVesselChange.Add(vesselCheck);
-			GameEvents.OnMapExited.Add(mapTimer);
-
-			manager = findKerbalGUIManager();
 
 			careerMode = HighLogic.CurrentGame.Mode == Game.Modes.CAREER;
-
-			if (manager == null)
-				Destroy(this);
 
 			reload = true;
 
@@ -86,13 +84,11 @@ namespace PortraitStats
 				settingsFile = GameDatabase.Instance.GetConfigNode("PortraitStats/Settings/Portrait_Stats_Config");
 				if (settingsFile != null)
 				{
-					if (settingsFile.HasValue("traitToolTip"))
-					{
-						if (!bool.TryParse(settingsFile.GetValue("traitToolTip"), out traitTooltip))
-							traitTooltip = true;
-					}
-					if (settingsFile.HasValue("expToolTip"))
-						bool.TryParse(settingsFile.GetValue("expToolTip"), out expTooltip);
+					settingsFile.TryGetValue("traitToolTip", ref traitTooltip);
+					settingsFile.TryGetValue("showAlways", ref showAlways);
+					settingsFile.TryGetValue("expToolTip", ref expTooltip);
+					settingsFile.TryGetValue("useIcon", ref useIcon);
+
 					if (settingsFile.HasValue("pilotColor"))
 						pilotColor = parseColor(settingsFile, "pilotColor", pilotColor);
 					if (settingsFile.HasValue("engineerColor"))
@@ -105,8 +101,6 @@ namespace PortraitStats
 						unknownColor = parseColor(settingsFile, "unknownClassColor", unknownColor);
 				}
 			}
-
-			RenderingManager.AddToPostDrawQueue(5, drawLabels);
 		}
 
 		private Color parseColor(ConfigNode node, string name, Color c)
@@ -125,15 +119,69 @@ namespace PortraitStats
 		{
 			GameEvents.onVesselWasModified.Remove(vesselCheck);
 			GameEvents.onVesselChange.Remove(vesselCheck);
-			GameEvents.OnMapExited.Remove(mapTimer);
-
-			RenderingManager.RemoveFromPostDrawQueue(5, drawLabels);
 		}
 
 		private void Update()
 		{
-			if ((int)Time.time % 10 == 0)
-				reload = true;
+			if (!traitTooltip && !expTooltip)
+				return;
+
+			foreach (KerbalTrait k in currentCrew.Values)
+			{
+				if (k == null)
+					continue;
+
+				if (k.Portrait.hoverArea.Hover)
+				{
+					if (traitTooltip)
+					{
+						k.CrewTip.textString = crewTooltip(k.ProtoCrew);
+					}
+					if (expTooltip)
+					{
+						k.LevelTip.textString = levelTooltip(k.ProtoCrew);
+					}
+				}
+			}
+		}
+
+		private string levelTooltip(ProtoCrewMember c)
+		{
+			string text = "<b>" + c.name + "</b>";
+			if (PortraitStats.Instance.careerMode)
+				text += "\n<b>Experience:</b> " + c.experience.ToString("F2") + "/" + KerbalRoster.GetExperienceLevelRequirement(c.experienceLevel);
+			string log = KerbalRoster.GenerateExperienceLog(c.careerLog);
+			if (!string.IsNullOrEmpty(log))
+			{
+				text += "\n<b>Career Log:</b>\n";
+				text += log;
+			}
+			log = KerbalRoster.GenerateExperienceLog(c.flightLog);
+			if (!string.IsNullOrEmpty(log))
+			{
+				text += "\n<b>Current Flight:</b>\n";
+				text += log;
+			}
+			return text;
+		}
+
+		private string crewTooltip(ProtoCrewMember c)
+		{
+			string text = "<b>" + c.name + "</b>";
+			if (c.isBadass)
+				text += " - Badass";
+			text += "\nCourage: " + c.courage.ToString("P0") + " Stupidity: " + c.stupidity.ToString("P0");
+			text += "\n<b>" + c.experienceTrait.Title + "</b>";
+			if (!string.IsNullOrEmpty(c.experienceTrait.Description))
+			{
+				text += "\n" + c.experienceTrait.Description;
+			}
+			if (!string.IsNullOrEmpty(c.experienceTrait.DescriptionEffects))
+			{
+				text += "\n<b>Effects</b>\n";
+				text += c.experienceTrait.DescriptionEffects;
+			}
+			return text;
 		}
 
 		private void LateUpdate()
@@ -141,274 +189,66 @@ namespace PortraitStats
 			if (!FlightGlobals.ready)
 				return;
 
-			if (KerbalGUIManager.ActiveCrew.Count <= 0)
+			if (FlightGlobals.ActiveVessel == null)
 				return;
 
 			if (reload)
 			{
-				List<string> crewtodelete = new List<string>();
-
-				foreach (KeyValuePair<string, KerbalTrait> crew in currentCrew)
-				{
-					Kerbal fndkerbal = KerbalGUIManager.ActiveCrew.Where(x => x.name == crew.Key).FirstOrDefault();
-
-					if (fndkerbal != null)
-						continue;
-
-					crewtodelete.Add(crew.Key);
-				}
-
-				crewtodelete.ForEach(id => currentCrew.Remove(id));
-
-				foreach (Kerbal k in KerbalGUIManager.ActiveCrew)
-				{
-					if (currentCrew.ContainsKey(k.name))
-						continue;
-
-					currentCrew.Add(k.name, new KerbalTrait(k));
-				}
-
-				screenPos.x = Screen.width - manager.AvatarSpacing - manager.AvatarSize - (KerbalGUIManager.ActiveCrew.Count > 3 ? 28 : 0);
-				screenPos.y = Screen.height - manager.AvatarSpacing - manager.AvatarTextSize - 26;
-
-				index = int.MaxValue;
 				reload = false;
-			}
 
-			if (index != manager.startIndex)
-			{
-				index = manager.startIndex;
+				currentCrew.Clear();
 
-				activeCrew.Clear();
+				crewCount = FlightGlobals.ActiveVessel.GetCrewCount();
 
-				for (int i = index + 2; i >= index; i--)
+				var crew = FlightGlobals.ActiveVessel.GetVesselCrew();
+
+				for (int i = 0; i < crew.Count; i++)
 				{
-					if (i >= KerbalGUIManager.ActiveCrew.Count)
+					ProtoCrewMember p = crew[i];
+
+					if (p == null)
 						continue;
 
-					string name = KerbalGUIManager.ActiveCrew[i].name;
+					KerbalTrait K = setupPortrait(p);
 
-					if (currentCrew.ContainsKey(name))
-					{
-						activeCrew.Add(currentCrew[name]);
-					}
+					currentCrew.Add(K.ProtoCrew.name, K);
 				}
 			}
-		}
-
-		private void drawLabels()
-		{
-			if (timer >= 0)
-			{
-				timer -= Time.deltaTime;
-				return;
-			}
-
-			if (FlightGlobals.ActiveVessel.isEVA)
-				return;
-
-			switch (CameraManager.Instance.currentCameraMode)
-			{
-				case CameraManager.CameraMode.Map:
-				case CameraManager.CameraMode.Internal:
-				case CameraManager.CameraMode.IVA:
-					return;
-			}
-
-			int crewCount = KerbalGUIManager.ActiveCrew.Count;
 
 			if (crewCount <= 0)
 				return;
+		}
 
-			Color old = GUI.color;
-			bool drawTooltip = false;
-			bool drawTraitTooltip = false;
+		private KerbalTrait setupPortrait(ProtoCrewMember k)
+		{
+			KerbalPortrait P = null;
 
-			for(int i = 0; i < activeCrew.Count; i++)
+			var pField = typeof(Kerbal).GetField("portrait", BindingFlags.NonPublic | BindingFlags.Instance);
+
+			try
 			{
-				float leftOffset;
-
-				/* This lovely bit of nonsense is due to the fact that KSP orders the crew portraits
-				 * differently based on how many Kerbals are present. Crews with 2 or 3 Kerbals require
-				 * special cases...
-				 */
-				switch (crewCount)
-				{
-					case 2:
-						leftOffset = screenPos.x - ((i == 0 ? 1 : 0) * (manager.AvatarSpacing + manager.AvatarSize));
-						break;
-					case 3:
-						int j = 0;
-						switch (i)
-						{
-							case 1:
-								j = 2;
-								break;
-							case 2:
-								j = 1;
-								break;
-							default:
-								j = i;
-								break;
-						}
-						leftOffset = screenPos.x - (j * (manager.AvatarSpacing + manager.AvatarSize));
-						break;
-					default:
-						leftOffset = screenPos.x - (i * (manager.AvatarSpacing + manager.AvatarSize));
-						break;
-				}
-
-				Rect r = new Rect(leftOffset, screenPos.y, 26, 26);
-
-				GUI.color = activeCrew[i].IconColor;
-
-				GUI.DrawTextureWithTexCoords(r, atlas, activeCrew[i].TraitPos);
-
-				GUI.color = old;
-
-				if (traitTooltip)
-				{
-					if (r.Contains(Event.current.mousePosition))
-					{
-						if (currentToolTip != i)
-						{
-							currentToolTip = i;
-							toolTipTime = Time.fixedTime;
-						}
-						drawTooltip = true;
-						drawTraitTooltip = true;
-					}
-				}
-
-				if (careerMode || expTooltip)
-				{
-					r.x += manager.AvatarSize - 18;
-					r.y -= 48;
-					r.height = 72;
-					r.width = 16;
-
-					GUI.DrawTextureWithTexCoords(r, atlas, activeCrew[i].LevelPos);
-
-					if (!drawTooltip && expTooltip)
-					{
-						if (r.Contains(Event.current.mousePosition))
-						{
-							if (currentToolTip != i)
-							{
-								currentToolTip = i;
-								toolTipTime = Time.fixedTime;
-							}
-							drawTooltip = true;
-							drawTraitTooltip = false;
-						}
-					}
-				}
+				P = pField.GetValue(k.KerbalRef) as KerbalPortrait;
+			}
+			catch (Exception e)
+			{
+				Debug.LogWarning("[Portrait Stats] Error in locating Kerbal Crew Portrait; skipping [" + k.name + "]\n" + e);
+				return null;
 			}
 
-			// Tooltip drawing - do this after the loop to make sure it gets drawn on top
-			if (drawTooltip)
-			{
-				DrawToolTip(currentToolTip, drawTraitTooltip);
-			}
+			if (P == null)
+				return null;
+
+			return new KerbalTrait(k.KerbalRef, P);
+		}
+
+		private void log(string s, params object[] m)
+		{
+			Debug.Log(string.Format("[Portrait Stats] " + s, m));
 		}
 
 		private void vesselCheck(Vessel v)
 		{
 			reload = true;
-		}
-
-		private void mapTimer()
-		{
-			timer = 1.4f;
-		}
-
-		private KerbalGUIManager findKerbalGUIManager()
-		{
-			FieldInfo[] fields = typeof(KerbalGUIManager).GetFields(BindingFlags.NonPublic | BindingFlags.Static);
-
-			if (fields == null)
-				return null;
-
-			if (fields[0].GetValue(null).GetType() != typeof(KerbalGUIManager))
-				return null;
-
-			return (KerbalGUIManager)fields[0].GetValue(null);
-		}
-
-		private void DrawToolTip(int index, bool drawTraitTip)
-		{
-			if (tipStyle == null)
-			{
-				tipStyle = new GUIStyle(GUI.skin.box);
-				tipStyle.wordWrap = true;
-				tipStyle.stretchHeight = true;
-				tipStyle.normal.textColor = Color.white;
-				tipStyle.richText = true;
-				tipStyle.alignment = TextAnchor.UpperLeft;
-			}
-
-			GUI.depth = 0;
-			if (Time.fixedTime > toolTipTime + 0.4)
-			{
-				ProtoCrewMember pcm = activeCrew[index].ProtoCrew;
-
-				if (pcm == null)
-					return;
-
-				string text = "";
-
-				if (drawTraitTip)
-				{
-					text = "<b>" + pcm.name + "</b>";
-					if (pcm.isBadass)
-						text += " - Badass";
-					text += "\nCourage: " + pcm.courage.ToString("P0") + " Stupidity: " + pcm.stupidity.ToString("P0");
-					text += "\n<b>" + pcm.experienceTrait.Title + "</b>";
-					if (!string.IsNullOrEmpty(pcm.experienceTrait.Description))
-					{
-						text += "\n" + pcm.experienceTrait.Description;
-					}
-					if (!string.IsNullOrEmpty(pcm.experienceTrait.DescriptionEffects))
-					{
-						text += "\n<b>Effects</b>\n";
-						text += pcm.experienceTrait.DescriptionEffects;
-					}
-				}
-				else
-				{
-					text = "<b>" + pcm.name + "</b>";
-					if (careerMode)
-						text += "\n<b>Experience:</b> " + pcm.experience.ToString("F2") + "/" + KerbalRoster.GetExperienceLevelRequirement(pcm.experienceLevel);
-					string log = KerbalRoster.GenerateExperienceLog(pcm.careerLog);
-					if (!string.IsNullOrEmpty(log))
-					{
-						text += "\n<b>Career Log:</b>\n";
-						text += log;
-					}
-					log = KerbalRoster.GenerateExperienceLog(pcm.flightLog);
-					if (!string.IsNullOrEmpty(log))
-					{
-						text += "\n<b>Current Flight:</b>\n";
-						text += log;
-					}
-				}
-
-				GUIContent tip = new GUIContent(text);
-
-				Vector2 textDimensions = tipStyle.CalcSize(tip);
-				if (textDimensions.x > 320)
-				{
-					textDimensions.x = 320;
-					textDimensions.y = tipStyle.CalcHeight(tip, 320);
-				}
-				tooltipPosition.width = textDimensions.x;
-				tooltipPosition.height = textDimensions.y;
-				tooltipPosition.x = Event.current.mousePosition.x + tooltipPosition.width > Screen.width ?
-					Screen.width - tooltipPosition.width : Event.current.mousePosition.x;
-				tooltipPosition.y = Event.current.mousePosition.y - tooltipPosition.height - 8;
-
-				GUI.Label(tooltipPosition, tip, tipStyle);
-			}
 		}
 
 	}
