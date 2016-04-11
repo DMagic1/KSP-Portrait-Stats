@@ -192,6 +192,9 @@ namespace PortraitStats
 			if (FlightGlobals.ActiveVessel == null)
 				return;
 
+			if (FlightGlobals.ActiveVessel.isEVA)
+				return;
+
 			if (reload)
 			{
 				reload = false;
@@ -210,6 +213,9 @@ namespace PortraitStats
 						continue;
 
 					KerbalTrait K = setupPortrait(p);
+
+					if (K == null)
+						continue;
 
 					currentCrew.Add(K.ProtoCrew.name, K);
 				}
