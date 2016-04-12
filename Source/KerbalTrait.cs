@@ -24,26 +24,29 @@ THE SOFTWARE.
 */
 #endregion
 
+using System.Collections.Generic;
+using System.Linq;
 using Experience;
 using UnityEngine;
 using UnityEngine.UI;
 using KSP.UI.TooltipTypes;
 using KSP.UI.Screens.Flight;
+using Contracts;
+using FinePrint.Contracts;
+using FinePrint.Contracts.Parameters;
 
 namespace PortraitStats
 {
 	public class KerbalTrait
 	{
 		private const int UILayer = 5;
-		private Color iconColor;
 		private ProtoCrewMember protoCrew;
 		private Kerbal crew;
-		private Image icon;
-		private Sprite iconSprite;
 		private TooltipController_Text crewTip;
 		private TooltipController_Text levelTip;
 		private GameObject iconObject;
 		private KerbalPortrait portrait;
+		private List<string> touristParams = new List<string>();
 
 		public KerbalTrait(Kerbal k, KerbalPortrait p)
 		{
@@ -53,6 +56,13 @@ namespace PortraitStats
 			GameObject hover = p.hoverObjectsContainer;
 			GameObject role = hover.transform.GetChild(2).gameObject;
 			setupGameObjects(role, hover, protoCrew);
+			if (protoCrew.experienceTrait.TypeName == "Tourist")
+				touristUpdate();
+		}
+
+		public List<string> TouristParams
+		{
+			get { return touristParams; }
 		}
 
 		public ProtoCrewMember ProtoCrew
@@ -80,36 +90,83 @@ namespace PortraitStats
 			get { return crew; }
 		}
 
-		private Rect crewType(ExperienceTrait t)
+		public void touristUpdate()
+		{
+			if (ContractSystem.Instance == null)
+				return;
+
+			if (ContractSystem.Instance.GetActiveContractCount() <= 0)
+				return;
+
+			Contract[] currentContracts = ContractSystem.Instance.GetCurrentActiveContracts<TourismContract>();
+
+			for (int i = 0; i < currentContracts.Length; i++)
+			{
+				Contract c = currentContracts[i];
+
+				if (c == null)
+					continue;
+
+				if (c.ContractState != Contract.State.Active)
+					continue;
+
+				var activeParams = c.AllParameters.Where(a => a.GetType() == typeof(KerbalTourParameter) && a.State == ParameterState.Incomplete).ToList();
+
+				if (activeParams.Count <= 0)
+					continue;
+
+				for (int j = 0; j < activeParams.Count; j++)
+				{
+					KerbalTourParameter p = activeParams[j] as KerbalTourParameter;
+
+					if (p == null)
+						continue;
+
+					if (p.State != ParameterState.Incomplete)
+						continue;
+
+					if (p.kerbalName != protoCrew.name)
+						continue;
+
+					var destinationParams = p.AllParameters.Where(a => a.GetType() == typeof(KerbalDestinationParameter) && a.State == ParameterState.Incomplete).ToList();
+
+					if (destinationParams.Count <= 0)
+						continue;
+
+					for (int k = 0; k < destinationParams.Count; k++)
+					{
+						KerbalDestinationParameter d = destinationParams[k] as KerbalDestinationParameter;
+
+						if (d == null)
+							continue;
+
+						if (d.State != ParameterState.Incomplete)
+							continue;
+
+						if (d.kerbalName != protoCrew.name)
+							continue;
+
+						touristParams.Add(d.Title);
+					}
+				}
+			}
+		}
+
+		private Sprite crewIcon(ExperienceTrait t)
 		{
 			switch (t.TypeName)
 			{
 				case "Pilot":
-					iconColor = PortraitStats.pilotColor;
-					return new Rect(0, 100, 26, 26);
+					return Sprite.Create(PortraitStats.pilotTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Engineer":
-					iconColor = PortraitStats.engineerColor;
-					return new Rect(26, 100,26, 26);
+					return Sprite.Create(PortraitStats.engTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Scientist":
-					iconColor = PortraitStats.scientistColor;
-					return new Rect(53, 100, 26, 26);
+					return Sprite.Create(PortraitStats.sciTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Tourist":
-					iconColor = PortraitStats.touristColor;
-					return new Rect(79, 100, 26, 26);
+					return Sprite.Create(PortraitStats.tourTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				default:
-					iconColor = PortraitStats.unknownColor;
-					return new Rect(104, 100, 26, 26);
+					return Sprite.Create(PortraitStats.unknownTex, new Rect(0, 0, 24, 24), new Vector2(0.5f, 0.5f));
 			}
-		}
-
-		private Sprite setupIconImage()
-		{
-			iconSprite = Sprite.Create(PortraitStats.atlas, crewType(protoCrew.experienceTrait), new Vector2(0.5f, 0.5f));
-			//iconSprite = Sprite.Create(new Texture2D(26, 26), new Rect(0, 0, 26, 26), new Vector2(0.5f, 0.5f));
-
-			//portrait.roleLevelImage.sprite = iconSprite;
-
-			return iconSprite;
 		}
 
 		private void setupGameObjects(GameObject r, GameObject h, ProtoCrewMember c)
@@ -132,8 +189,6 @@ namespace PortraitStats
 
 				back.rectTransform.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 51, 69);
 
-				//r.transform.GetChild(1).gameObject.GetComponent<CanvasRenderer>().SetColor(iconColor);
-
 				RectTransform RT = back.rectTransform;
 
 				log("Image BackGround: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
@@ -146,7 +201,7 @@ namespace PortraitStats
 
 				log("Stars Image: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
 
-				iconObject = createIcon(r.transform, setupIconImage());
+				iconObject = createIcon(r.transform, crewIcon(c.experienceTrait));
 
 				if (PortraitStats.traitTooltip)
 				{
