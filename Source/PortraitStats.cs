@@ -28,9 +28,11 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using KSP.UI.Screens.Flight;
 using UnityEngine.UI;
+using Contracts;
 
 namespace PortraitStats
 {
@@ -41,9 +43,12 @@ namespace PortraitStats
 		private Dictionary<string, KerbalTrait> currentCrew = new Dictionary<string, KerbalTrait>();
 		private bool reload;
 		public bool careerMode;
-		private int crewCount;
 
-		public static Texture2D atlas;
+		public static Texture2D pilotTex;
+		public static Texture2D engTex;
+		public static Texture2D sciTex;
+		public static Texture2D tourTex;
+		public static Texture2D unknownTex;
 
 		private static bool loaded = false;
 		private static ConfigNode settingsFile;
@@ -51,11 +56,6 @@ namespace PortraitStats
 		public static bool expTooltip;
 		public static bool showAlways;
 		public static bool useIcon;
-		public static Color pilotColor = XKCDColors.PastelRed;
-		public static Color engineerColor = XKCDColors.DarkYellow;
-		public static Color scientistColor = XKCDColors.DirtyBlue;
-		public static Color touristColor = XKCDColors.SapGreen;
-		public static Color unknownColor = XKCDColors.White;
 
 		private static PortraitStats instance;
 
@@ -69,7 +69,10 @@ namespace PortraitStats
 			instance = this;
 
 			GameEvents.onVesselWasModified.Add(vesselCheck);
-			GameEvents.onVesselChange.Add(vesselCheck);
+			GameEvents.onVesselChange.Add(vesselChange);
+			GameEvents.Contract.onContractsLoaded.Add(onContractsLoaded);
+			GameEvents.Contract.onParameterChange.Add(onContractParamModified);
+			GameEvents.Contract.onAccepted.Add(onContractChange);
 
 			careerMode = HighLogic.CurrentGame.Mode == Game.Modes.CAREER;
 
@@ -79,7 +82,11 @@ namespace PortraitStats
 			{
 				loaded = true;
 
-				atlas = GameDatabase.Instance.GetTexture("PortraitStats/Icons/Atlas", false);
+				pilotTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/pilotIcon", false);
+				engTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/engineerIcon", false);
+				sciTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/scientistIcon", false);
+				tourTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/touristIcon", false);
+				unknownTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/questionIcon", false);
 
 				settingsFile = GameDatabase.Instance.GetConfigNode("PortraitStats/Settings/Portrait_Stats_Config");
 				if (settingsFile != null)
@@ -88,37 +95,17 @@ namespace PortraitStats
 					settingsFile.TryGetValue("showAlways", ref showAlways);
 					settingsFile.TryGetValue("expToolTip", ref expTooltip);
 					settingsFile.TryGetValue("useIcon", ref useIcon);
-
-					if (settingsFile.HasValue("pilotColor"))
-						pilotColor = parseColor(settingsFile, "pilotColor", pilotColor);
-					if (settingsFile.HasValue("engineerColor"))
-						engineerColor = parseColor(settingsFile, "engineerColor", engineerColor);
-					if (settingsFile.HasValue("scientistColor"))
-						scientistColor = parseColor(settingsFile, "scientistColor", scientistColor);
-					if (settingsFile.HasValue("touristColor"))
-						touristColor = parseColor(settingsFile, "touristColor", touristColor);
-					if (settingsFile.HasValue("unknownClassColor"))
-						unknownColor = parseColor(settingsFile, "unknownClassColor", unknownColor);
 				}
-			}
-		}
-
-		private Color parseColor(ConfigNode node, string name, Color c)
-		{
-			try
-			{
-				return ConfigNode.ParseColor(node.GetValue(name));
-			}
-			catch
-			{
-				return c;
 			}
 		}
 
 		private void OnDestroy()
 		{
 			GameEvents.onVesselWasModified.Remove(vesselCheck);
-			GameEvents.onVesselChange.Remove(vesselCheck);
+			GameEvents.onVesselChange.Remove(vesselChange);
+			GameEvents.Contract.onContractsLoaded.Remove(onContractsLoaded);
+			GameEvents.Contract.onParameterChange.Remove(onContractParamModified);
+			GameEvents.Contract.onAccepted.Remove(onContractChange);
 		}
 
 		private void Update()
@@ -135,7 +122,7 @@ namespace PortraitStats
 				{
 					if (traitTooltip)
 					{
-						k.CrewTip.textString = crewTooltip(k.ProtoCrew);
+						k.CrewTip.textString = crewTooltip(k);
 					}
 					if (expTooltip)
 					{
@@ -147,41 +134,67 @@ namespace PortraitStats
 
 		private string levelTooltip(ProtoCrewMember c)
 		{
-			string text = "<b>" + c.name + "</b>";
+			StringBuilder text = new StringBuilder();
+			text.Append("<b>" + c.name + "</b>");
+			text.AppendLine();
 			if (PortraitStats.Instance.careerMode)
-				text += "\n<b>Experience:</b> " + c.experience.ToString("F2") + "/" + KerbalRoster.GetExperienceLevelRequirement(c.experienceLevel);
+				text.Append("<b>Experience:</b> " + c.experience.ToString("F2") + "/" + KerbalRoster.GetExperienceLevelRequirement(c.experienceLevel));
 			string log = KerbalRoster.GenerateExperienceLog(c.careerLog);
 			if (!string.IsNullOrEmpty(log))
 			{
-				text += "\n<b>Career Log:</b>\n";
-				text += log;
+				text.AppendLine();
+				text.Append("<b>Career Log:</b>");
+				text.AppendLine();
+				text.Append(log);
 			}
 			log = KerbalRoster.GenerateExperienceLog(c.flightLog);
 			if (!string.IsNullOrEmpty(log))
 			{
-				text += "\n<b>Current Flight:</b>\n";
-				text += log;
+				text.AppendLine();
+				text.Append("<b>Current Flight:</b>");
+				text.AppendLine();
+				text.Append(log);
 			}
-			return text;
+			return text.ToString();
 		}
 
-		private string crewTooltip(ProtoCrewMember c)
+		private string crewTooltip(KerbalTrait c)
 		{
-			string text = "<b>" + c.name + "</b>";
-			if (c.isBadass)
-				text += " - Badass";
-			text += "\nCourage: " + c.courage.ToString("P0") + " Stupidity: " + c.stupidity.ToString("P0");
-			text += "\n<b>" + c.experienceTrait.Title + "</b>";
-			if (!string.IsNullOrEmpty(c.experienceTrait.Description))
+			StringBuilder text = new StringBuilder();
+			if (c.ProtoCrew.experienceTrait.TypeName == "Tourist")
 			{
-				text += "\n" + c.experienceTrait.Description;
+				text.Append("<b>" + c.ProtoCrew.name + "'s itinerary:</b>");
+				for (int i = 0; i < c.TouristParams.Count; i++)
+				{
+					text.AppendLine();
+					string s = c.TouristParams[i];
+					text.Append(s);
+				}
 			}
-			if (!string.IsNullOrEmpty(c.experienceTrait.DescriptionEffects))
+			else
 			{
-				text += "\n<b>Effects</b>\n";
-				text += c.experienceTrait.DescriptionEffects;
+				text.Append("<b>" + c.ProtoCrew.name + "</b>");
+				if (c.ProtoCrew.isBadass)
+					text.Append(" - Badass");
+				text.AppendLine();
+				text.Append("Courage: " + c.ProtoCrew.courage.ToString("P0") + " Stupidity: " + c.ProtoCrew.stupidity.ToString("P0"));
+				text.AppendLine();
+				text.Append("<b>" + c.ProtoCrew.experienceTrait.Title + "</b>");
+				if (!string.IsNullOrEmpty(c.ProtoCrew.experienceTrait.Description))
+				{
+					text.AppendLine();
+					text.Append(c.ProtoCrew.experienceTrait.Description);
+				}
+				if (!string.IsNullOrEmpty(c.ProtoCrew.experienceTrait.DescriptionEffects))
+				{
+					text.AppendLine();
+					text.Append("<b>Effects</b>");
+					text.AppendLine();
+					text.Append(c.ProtoCrew.experienceTrait.DescriptionEffects);
+				}
 			}
-			return text;
+
+			return text.ToString();
 		}
 
 		private void LateUpdate()
@@ -199,10 +212,6 @@ namespace PortraitStats
 			{
 				reload = false;
 
-				currentCrew.Clear();
-
-				crewCount = FlightGlobals.ActiveVessel.GetCrewCount();
-
 				var crew = FlightGlobals.ActiveVessel.GetVesselCrew();
 
 				for (int i = 0; i < crew.Count; i++)
@@ -210,6 +219,9 @@ namespace PortraitStats
 					ProtoCrewMember p = crew[i];
 
 					if (p == null)
+						continue;
+
+					if (currentCrew.ContainsKey(p.name))
 						continue;
 
 					KerbalTrait K = setupPortrait(p);
@@ -220,9 +232,6 @@ namespace PortraitStats
 					currentCrew.Add(K.ProtoCrew.name, K);
 				}
 			}
-
-			if (crewCount <= 0)
-				return;
 		}
 
 		private KerbalTrait setupPortrait(ProtoCrewMember k)
@@ -247,15 +256,40 @@ namespace PortraitStats
 			return new KerbalTrait(k.KerbalRef, P);
 		}
 
-		private void log(string s, params object[] m)
-		{
-			Debug.Log(string.Format("[Portrait Stats] " + s, m));
-		}
-
 		private void vesselCheck(Vessel v)
 		{
 			reload = true;
 		}
 
+		private void vesselChange(Vessel v)
+		{
+			currentCrew.Clear();
+			reload = true;
+		}
+
+		private void onContractsLoaded()
+		{
+			touristUpdate();
+		}
+		
+		private void onContractParamModified(Contract c, ContractParameter p)
+		{
+			touristUpdate();
+		}
+		
+		private void onContractChange(Contract c)
+		{
+			touristUpdate();
+		}
+
+		private void touristUpdate()
+		{
+			foreach (KerbalTrait k in currentCrew.Values)
+			{
+				if (k.ProtoCrew.experienceTrait.TypeName == "Tourist")
+					k.touristUpdate();
+			}
+		}
+		
 	}
 }
