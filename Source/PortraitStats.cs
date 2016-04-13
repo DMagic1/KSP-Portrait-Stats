@@ -25,6 +25,7 @@ THE SOFTWARE.
 #endregion
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
@@ -33,6 +34,8 @@ using UnityEngine;
 using KSP.UI.Screens.Flight;
 using UnityEngine.UI;
 using Contracts;
+using FinePrint.Contracts;
+using FinePrint.Contracts.Parameters;
 
 namespace PortraitStats
 {
@@ -42,7 +45,9 @@ namespace PortraitStats
 	{
 		private Dictionary<string, KerbalTrait> currentCrew = new Dictionary<string, KerbalTrait>();
 		private bool reload;
-		public bool careerMode;
+		private bool careerMode;
+		private CameraManager.CameraMode cMode;
+		private bool resetting;
 
 		public static Texture2D pilotTex;
 		public static Texture2D engTex;
@@ -70,6 +75,8 @@ namespace PortraitStats
 
 			GameEvents.onVesselWasModified.Add(vesselCheck);
 			GameEvents.onVesselChange.Add(vesselChange);
+			GameEvents.OnCameraChange.Add(cameraChange);
+			GameEvents.onCrewTransferred.Add(crewTransfer);
 			GameEvents.Contract.onContractsLoaded.Add(onContractsLoaded);
 			GameEvents.Contract.onParameterChange.Add(onContractParamModified);
 			GameEvents.Contract.onAccepted.Add(onContractChange);
@@ -103,6 +110,8 @@ namespace PortraitStats
 		{
 			GameEvents.onVesselWasModified.Remove(vesselCheck);
 			GameEvents.onVesselChange.Remove(vesselChange);
+			GameEvents.OnCameraChange.Remove(cameraChange);
+			GameEvents.onCrewTransferred.Remove(crewTransfer);
 			GameEvents.Contract.onContractsLoaded.Remove(onContractsLoaded);
 			GameEvents.Contract.onParameterChange.Remove(onContractParamModified);
 			GameEvents.Contract.onAccepted.Remove(onContractChange);
@@ -258,13 +267,46 @@ namespace PortraitStats
 
 		private void vesselCheck(Vessel v)
 		{
-			reload = true;
+			if (resetting)
+				StopCoroutine("delayedReset");
+
+			StartCoroutine("delayedReset", true);
 		}
 
 		private void vesselChange(Vessel v)
 		{
 			currentCrew.Clear();
-			reload = true;
+
+			if (resetting)
+				StopCoroutine("delayedReset");
+
+			StartCoroutine("delayedReset", false);
+		}
+
+		private void cameraChange(CameraManager.CameraMode c)
+		{
+			if (c == CameraManager.CameraMode.Flight)
+			{
+				if (cMode != CameraManager.CameraMode.Flight)
+				{
+					if (resetting)
+						StopCoroutine("delayedReset");
+
+					StartCoroutine("delayedReset", true);
+				}
+			}
+
+			cMode = c;
+		}
+		
+		private void crewTransfer(GameEvents.HostedFromToAction<ProtoCrewMember, Part> pp)
+		{
+			currentCrew.Clear();
+
+			if (resetting)
+				StopCoroutine("delayedReset");
+
+			StartCoroutine("delayedReset", false);
 		}
 
 		private void onContractsLoaded()
@@ -274,12 +316,14 @@ namespace PortraitStats
 		
 		private void onContractParamModified(Contract c, ContractParameter p)
 		{
-			touristUpdate();
+			if (p.GetType() == typeof(KerbalDestinationParameter))
+				touristUpdate();
 		}
 		
 		private void onContractChange(Contract c)
 		{
-			touristUpdate();
+			if (c.GetType() == typeof(TourismContract))
+				touristUpdate();
 		}
 
 		private void touristUpdate()
@@ -289,6 +333,35 @@ namespace PortraitStats
 				if (k.ProtoCrew.experienceTrait.TypeName == "Tourist")
 					k.touristUpdate();
 			}
+		}
+
+		private IEnumerator delayedReset(bool clean)
+		{
+			resetting = true;
+
+			int timer = 0;
+
+			while (timer < 5)
+			{
+				timer++;
+				yield return null;
+			}
+
+			if (clean)
+			{
+				var nullPortraits = currentCrew.Where(k => k.Value.ProtoCrew == null).Select(k => k.Key).ToList();
+
+				for (int i = 0; i < nullPortraits.Count; i++)
+				{
+					string s = nullPortraits[i];
+
+					if (currentCrew.ContainsKey(s))
+						currentCrew.Remove(s);
+				}
+			}
+
+			reload = true;
+			resetting = false;
 		}
 		
 	}
