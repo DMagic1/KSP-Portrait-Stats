@@ -173,11 +173,19 @@ namespace PortraitStats
 			if (c.ProtoCrew.experienceTrait.TypeName == "Tourist")
 			{
 				text.Append("<b>" + c.ProtoCrew.name + "'s itinerary:</b>");
-				for (int i = 0; i < c.TouristParams.Count; i++)
+				if (c.TouristParams.Count > 0)
+				{
+					for (int i = 0; i < c.TouristParams.Count; i++)
+					{
+						text.AppendLine();
+						string s = c.TouristParams[i];
+						text.Append(s);
+					}
+				}
+				else
 				{
 					text.AppendLine();
-					string s = c.TouristParams[i];
-					text.Append(s);
+					text.Append("Get thee home!");
 				}
 			}
 			else
