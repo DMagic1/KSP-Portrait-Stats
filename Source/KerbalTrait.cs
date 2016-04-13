@@ -232,7 +232,7 @@ namespace PortraitStats
 
 			CanvasRenderer cr = icon.AddComponent<CanvasRenderer>();
 
-			log("Sprite: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
+			//log("Sprite: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
 
 			Image i = icon.AddComponent<Image>();
 			i.sprite = s;			
