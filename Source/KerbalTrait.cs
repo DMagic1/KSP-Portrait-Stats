@@ -189,18 +189,6 @@ namespace PortraitStats
 
 				back.rectTransform.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 51, 69);
 
-				RectTransform RT = back.rectTransform;
-
-				log("Image BackGround: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
-
-				RT = r.transform.GetChild(0).gameObject.GetComponent<Text>().rectTransform;
-
-				log("Level Text: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
-
-				RT = r.transform.GetChild(1).gameObject.GetComponent<Image>().rectTransform;
-
-				log("Stars Image: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
-
 				iconObject = createIcon(r.transform, crewIcon(c.experienceTrait));
 
 				if (PortraitStats.traitTooltip)
@@ -233,13 +221,13 @@ namespace PortraitStats
 
 			RectTransform RT = icon.AddComponent<RectTransform>();
 			RT.pivot = new Vector2(0, 0);
-			RT.offsetMax = new Vector2(-24, 19);
+			RT.offsetMax = new Vector2(-26, 19);
 			RT.offsetMin = new Vector2(-6, 1);
-			RT.anchorMax = new Vector2(0.8f, 0.8f);
+			RT.anchorMax = new Vector2(0.9f, 0.8f);
 			RT.anchorMin = new Vector2(0.2f, 0.2f);
 			RT.anchoredPosition3D = new Vector3(-56, -5, 0);
 			RT.anchoredPosition = new Vector2(-56, -5);
-			RT.localScale = new Vector3(1, 1, 1f);
+			RT.localScale = new Vector3(1, 1, 1);
 			RT.localPosition.Set(0f, 0f, 0f);
 
 			CanvasRenderer cr = icon.AddComponent<CanvasRenderer>();
