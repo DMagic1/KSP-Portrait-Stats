@@ -62,6 +62,12 @@ namespace PortraitStats
 		public static bool showAlways;
 		public static bool useIcon;
 
+		public static Color pilotColor = XKCDColors.PastelRed;
+		public static Color engineerColor = XKCDColors.DarkYellow;
+		public static Color scientistColor = XKCDColors.DirtyBlue;
+		public static Color touristColor = XKCDColors.SapGreen;
+		public static Color unknownColor = XKCDColors.White;
+
 		private static PortraitStats instance;
 
 		public static PortraitStats Instance
@@ -102,7 +108,30 @@ namespace PortraitStats
 					settingsFile.TryGetValue("showAlways", ref showAlways);
 					settingsFile.TryGetValue("expToolTip", ref expTooltip);
 					settingsFile.TryGetValue("useIcon", ref useIcon);
+
+					if (settingsFile.HasValue("pilotColor"))
+						pilotColor = parseColor(settingsFile, "pilotColor", pilotColor);
+					if (settingsFile.HasValue("engineerColor"))
+						engineerColor = parseColor(settingsFile, "engineerColor", engineerColor);
+					if (settingsFile.HasValue("scientistColor"))
+						scientistColor = parseColor(settingsFile, "scientistColor", scientistColor);
+					if (settingsFile.HasValue("touristColor"))
+						touristColor = parseColor(settingsFile, "touristColor", touristColor);
+					if (settingsFile.HasValue("unknownClassColor"))
+						unknownColor = parseColor(settingsFile, "unknownClassColor", unknownColor);
 				}
+			}
+		}
+
+		private Color parseColor(ConfigNode node, string name, Color c)
+		{
+			try
+			{
+				return ConfigNode.ParseColor(node.GetValue(name));
+			}
+			catch
+			{
+				return c;
 			}
 		}
 

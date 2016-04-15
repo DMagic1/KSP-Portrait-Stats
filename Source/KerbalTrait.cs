@@ -45,6 +45,7 @@ namespace PortraitStats
 		private TooltipController_Text crewTip;
 		private TooltipController_Text levelTip;
 		private GameObject iconObject;
+		private Color iconColor;
 		private KerbalPortrait portrait;
 		private List<string> touristParams = new List<string>();
 
@@ -157,14 +158,19 @@ namespace PortraitStats
 			switch (t.TypeName)
 			{
 				case "Pilot":
+					iconColor = PortraitStats.pilotColor;
 					return Sprite.Create(PortraitStats.pilotTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Engineer":
+					iconColor = PortraitStats.engineerColor;
 					return Sprite.Create(PortraitStats.engTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Scientist":
+					iconColor = PortraitStats.scientistColor;
 					return Sprite.Create(PortraitStats.sciTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Tourist":
+					iconColor = PortraitStats.touristColor;
 					return Sprite.Create(PortraitStats.tourTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				default:
+					iconColor = PortraitStats.unknownColor;
 					return Sprite.Create(PortraitStats.unknownTex, new Rect(0, 0, 24, 24), new Vector2(0.5f, 0.5f));
 			}
 		}
@@ -235,7 +241,8 @@ namespace PortraitStats
 			//log("Sprite: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
 
 			Image i = icon.AddComponent<Image>();
-			i.sprite = s;			
+			i.sprite = s;
+			i.color = iconColor;
 
 			icon.transform.SetParent(parent, false);
 
