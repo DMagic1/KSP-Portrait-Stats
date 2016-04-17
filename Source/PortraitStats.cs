@@ -270,6 +270,9 @@ namespace PortraitStats
 					if (currentCrew.ContainsKey(p.name))
 						continue;
 
+					if (p.KerbalRef.state == Kerbal.States.DEAD)
+						continue;
+
 					KerbalTrait K = setupPortrait(p);
 
 					if (K == null)
@@ -284,11 +287,9 @@ namespace PortraitStats
 		{
 			KerbalPortrait P = null;
 
-			var pField = typeof(Kerbal).GetField("portrait", BindingFlags.NonPublic | BindingFlags.Instance);
-
 			try
 			{
-				P = pField.GetValue(k.KerbalRef) as KerbalPortrait;
+				P = PortraitHook.PortraitList.FirstOrDefault(a => a.crewMember.protoCrewMember == k);
 			}
 			catch (Exception e)
 			{

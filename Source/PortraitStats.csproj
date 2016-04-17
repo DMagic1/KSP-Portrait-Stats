@@ -50,6 +50,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PortraitHook.cs" />
     <Compile Include="PortraitStats.cs" />
     <Compile Include="KerbalTrait.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
