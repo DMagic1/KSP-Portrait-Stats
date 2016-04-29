@@ -258,49 +258,34 @@ namespace PortraitStats
 			{
 				reload = false;
 
-				var crew = FlightGlobals.ActiveVessel.GetVesselCrew();
+				var crew = KerbalPortraitGallery.Instance.Portraits;
 
 				for (int i = 0; i < crew.Count; i++)
 				{
-					ProtoCrewMember p = crew[i];
+					KerbalPortrait p = crew[i];
 
 					if (p == null)
 						continue;
 
-					if (currentCrew.ContainsKey(p.name))
+					Kerbal k = p.crewMember;
+
+					if (k == null)
+						return;
+
+					if (currentCrew.ContainsKey(p.crewMemberName))
 						continue;
 
-					if (p.KerbalRef.state == Kerbal.States.DEAD)
+					if (k.state == Kerbal.States.DEAD)
 						continue;
 
-					KerbalTrait K = setupPortrait(p);
+					KerbalTrait K = new KerbalTrait(k, p);
 
 					if (K == null)
 						continue;
 
-					currentCrew.Add(K.ProtoCrew.name, K);
+					currentCrew.Add(p.crewMemberName, K);
 				}
 			}
-		}
-
-		private KerbalTrait setupPortrait(ProtoCrewMember k)
-		{
-			KerbalPortrait P = null;
-
-			try
-			{
-				P = PortraitHook.PortraitList.FirstOrDefault(a => a.crewMember.protoCrewMember == k);
-			}
-			catch (Exception e)
-			{
-				Debug.LogWarning("[Portrait Stats] Error in locating Kerbal Crew Portrait; skipping [" + k.name + "]\n" + e);
-				return null;
-			}
-
-			if (P == null)
-				return null;
-
-			return new KerbalTrait(k.KerbalRef, P);
 		}
 
 		private void vesselCheck(Vessel v)
