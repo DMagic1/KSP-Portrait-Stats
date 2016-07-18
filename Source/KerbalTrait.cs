@@ -47,6 +47,9 @@ namespace PortraitStats
 		private GameObject iconObject;
 		private Color iconColor;
 		private KerbalPortrait portrait;
+		private bool highlighting;
+		private PartSelector highlighter;
+		private int timer;
 		private List<string> touristParams = new List<string>();
 
 		public KerbalTrait(Kerbal k, KerbalPortrait p)
@@ -54,6 +57,7 @@ namespace PortraitStats
 			portrait = p;
 			crew = k;
 			protoCrew = k.protoCrewMember;
+			iconColor = crewColor(protoCrew.experienceTrait);
 			GameObject hover = p.hoverObjectsContainer;
 			GameObject role = hover.transform.GetChild(2).gameObject;
 			setupGameObjects(role, hover, protoCrew);
@@ -89,6 +93,27 @@ namespace PortraitStats
 		public Kerbal Crew
 		{
 			get { return crew; }
+		}
+
+		public void setHighlight(bool on)
+		{
+			if (on && !highlighting)
+			{
+				if (timer < 2)
+					timer++;
+				else
+				{
+					highlighting = true;
+					highlighter = PartSelector.Create(crew.InPart, null, iconColor, iconColor);
+				}
+			}
+
+			if (highlighting && !on)
+			{
+				timer = 0;
+				highlighting = false;
+				highlighter.Dismiss();
+			}
 		}
 
 		public void touristUpdate()
@@ -153,24 +178,36 @@ namespace PortraitStats
 			}
 		}
 
+		private Color crewColor(ExperienceTrait t)
+		{
+			switch (t.TypeName)
+			{
+				case "Pilot":
+					return PortraitStats.pilotColor;
+				case "Engineer":
+					return PortraitStats.engineerColor;
+				case "Scientist":
+					return PortraitStats.scientistColor;
+				case "Tourist":
+					return PortraitStats.touristColor;
+				default:
+					return PortraitStats.unknownColor;
+			}
+		}
+
 		private Sprite crewIcon(ExperienceTrait t)
 		{
 			switch (t.TypeName)
 			{
 				case "Pilot":
-					iconColor = PortraitStats.pilotColor;
 					return Sprite.Create(PortraitStats.pilotTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Engineer":
-					iconColor = PortraitStats.engineerColor;
 					return Sprite.Create(PortraitStats.engTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Scientist":
-					iconColor = PortraitStats.scientistColor;
 					return Sprite.Create(PortraitStats.sciTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				case "Tourist":
-					iconColor = PortraitStats.touristColor;
 					return Sprite.Create(PortraitStats.tourTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
 				default:
-					iconColor = PortraitStats.unknownColor;
 					return Sprite.Create(PortraitStats.unknownTex, new Rect(0, 0, 24, 24), new Vector2(0.5f, 0.5f));
 			}
 		}
