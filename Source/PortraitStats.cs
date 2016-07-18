@@ -61,6 +61,7 @@ namespace PortraitStats
 		public static bool expTooltip;
 		public static bool showAlways;
 		public static bool useIcon;
+		public static bool hoverHighlight;
 
 		public static Color pilotColor = XKCDColors.PastelRed;
 		public static Color engineerColor = XKCDColors.DarkYellow;
@@ -108,6 +109,7 @@ namespace PortraitStats
 					settingsFile.TryGetValue("showAlways", ref showAlways);
 					settingsFile.TryGetValue("expToolTip", ref expTooltip);
 					settingsFile.TryGetValue("useIcon", ref useIcon);
+					settingsFile.TryGetValue("hoverHighlight", ref hoverHighlight);
 
 					if (settingsFile.HasValue("pilotColor"))
 						pilotColor = parseColor(settingsFile, "pilotColor", pilotColor);
@@ -166,17 +168,21 @@ namespace PortraitStats
 					{
 						k.LevelTip.textString = levelTooltip(k.ProtoCrew);
 					}
+
+					k.setHighlight(hoverHighlight);
 				}
+				else
+					k.setHighlight(false);
 			}
 		}
 
 		private string levelTooltip(ProtoCrewMember c)
 		{
 			StringBuilder text = new StringBuilder();
-			text.Append("<b>" + c.name + "</b>");
+			text.Append(string.Format("<b>{0}</b>", c.name));
 			text.AppendLine();
 			if (PortraitStats.Instance.careerMode)
-				text.Append("<b>Experience:</b> " + c.experience.ToString("F2") + "/" + KerbalRoster.GetExperienceLevelRequirement(c.experienceLevel));
+				text.Append(string.Format("<b>Experience:</b> {0:F2}/{1}", c.experience, KerbalRoster.GetExperienceLevelRequirement(c.experienceLevel)));
 			string log = KerbalRoster.GenerateExperienceLog(c.careerLog);
 			if (!string.IsNullOrEmpty(log))
 			{
@@ -201,7 +207,7 @@ namespace PortraitStats
 			StringBuilder text = new StringBuilder();
 			if (c.ProtoCrew.experienceTrait.TypeName == "Tourist")
 			{
-				text.Append("<b>" + c.ProtoCrew.name + "'s itinerary:</b>");
+				text.Append(string.Format("<b>{0}'s itinerary:</b>", c.ProtoCrew.name));
 				if (c.TouristParams.Count > 0)
 				{
 					for (int i = 0; i < c.TouristParams.Count; i++)
@@ -216,16 +222,18 @@ namespace PortraitStats
 					text.AppendLine();
 					text.Append("Get thee home!");
 				}
+				text.AppendLine();
+				text.Append(c.Crew.InPart.partInfo.title);
 			}
 			else
 			{
-				text.Append("<b>" + c.ProtoCrew.name + "</b>");
-				if (c.ProtoCrew.isBadass)
-					text.Append(" - Badass");
+				text.Append(string.Format("<b>{0}</b>{1}", c.ProtoCrew.name, c.ProtoCrew.isBadass ? " - Badass" : ""));
 				text.AppendLine();
-				text.Append("Courage: " + c.ProtoCrew.courage.ToString("P0") + " Stupidity: " + c.ProtoCrew.stupidity.ToString("P0"));
+				text.Append(c.Crew.InPart.partInfo.title);
 				text.AppendLine();
-				text.Append("<b>" + c.ProtoCrew.experienceTrait.Title + "</b>");
+				text.Append(string.Format("Courage: {0:P0} Stupidity: {1:P0}", c.ProtoCrew.courage, c.ProtoCrew.stupidity));
+				text.AppendLine();
+				text.Append(string.Format("<b>{0}</b>", c.ProtoCrew.experienceTrait.Title));
 				if (!string.IsNullOrEmpty(c.ProtoCrew.experienceTrait.Description))
 				{
 					text.AppendLine();
