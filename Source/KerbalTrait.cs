@@ -61,6 +61,7 @@ namespace PortraitStats
 			GameObject hover = p.hoverObjectsContainer;
 			GameObject role = hover.transform.GetChild(2).gameObject;
 			setupGameObjects(role, hover, protoCrew);
+			addEVAListener();
 			if (protoCrew.experienceTrait.TypeName == "Tourist")
 				touristUpdate();
 		}
@@ -93,6 +94,21 @@ namespace PortraitStats
 		public Kerbal Crew
 		{
 			get { return crew; }
+		}
+
+		private void addEVAListener()
+		{
+			portrait.evaButton.onClick.AddListener(EVAListener);
+		}
+
+		private void EVAListener()
+		{
+			if (highlighting)
+			{
+				timer = 0;
+				highlighting = false;
+				highlighter.Dismiss();
+			}
 		}
 
 		public void setHighlight(bool on)
