@@ -32,8 +32,10 @@ using UnityEngine.UI;
 using KSP.UI.TooltipTypes;
 using KSP.UI.Screens.Flight;
 using Contracts;
+using Contracts.Parameters;
 using FinePrint.Contracts;
 using FinePrint.Contracts.Parameters;
+using TMPro;
 
 namespace PortraitStats
 {
@@ -42,8 +44,6 @@ namespace PortraitStats
 		private const int UILayer = 5;
 		private ProtoCrewMember protoCrew;
 		private Kerbal crew;
-		private TooltipController_Text crewTip;
-		private TooltipController_Text levelTip;
 		private GameObject iconObject;
 		private Color iconColor;
 		private KerbalPortrait portrait;
@@ -51,6 +51,8 @@ namespace PortraitStats
 		private PartSelector highlighter;
 		private int timer;
 		private List<string> touristParams = new List<string>();
+		private Button transferButton;
+		private string cachedTooltip;
 
 		public KerbalTrait(Kerbal k, KerbalPortrait p)
 		{
@@ -64,6 +66,7 @@ namespace PortraitStats
 			addEVAListener();
 			if (protoCrew.experienceTrait.TypeName == "Tourist")
 				touristUpdate();
+			cachedTooltip = portrait.tooltip.descriptionString;
 		}
 
 		public List<string> TouristParams
@@ -76,14 +79,14 @@ namespace PortraitStats
 			get { return protoCrew; }
 		}
 
-		public TooltipController_Text CrewTip
+		public Button TransferButton
 		{
-			get { return crewTip; }
+			get { return transferButton; }
 		}
 
-		public TooltipController_Text LevelTip
+		public string CachedTooltip
 		{
-			get { return levelTip; }
+			get { return cachedTooltip; }
 		}
 
 		public KerbalPortrait Portrait
@@ -154,10 +157,9 @@ namespace PortraitStats
 
 				var activeParams = c.AllParameters.Where(a => a.GetType() == typeof(KerbalTourParameter) && a.State == ParameterState.Incomplete).ToList();
 
-				if (activeParams.Count <= 0)
-					continue;
+				int l = activeParams.Count;
 
-				for (int j = 0; j < activeParams.Count; j++)
+				for (int j = 0; j < l; j++)
 				{
 					KerbalTourParameter p = activeParams[j] as KerbalTourParameter;
 
@@ -172,10 +174,9 @@ namespace PortraitStats
 
 					var destinationParams = p.AllParameters.Where(a => a.GetType() == typeof(KerbalDestinationParameter) && a.State == ParameterState.Incomplete).ToList();
 
-					if (destinationParams.Count <= 0)
-						continue;
+					int e = destinationParams.Count;
 
-					for (int k = 0; k < destinationParams.Count; k++)
+					for (int k = 0; k < e; k++)
 					{
 						KerbalDestinationParameter d = destinationParams[k] as KerbalDestinationParameter;
 
@@ -191,7 +192,64 @@ namespace PortraitStats
 						touristParams.Add(d.Title);
 					}
 				}
+
+				var geeParams = c.AllParameters.Where(a => a.GetType() == typeof(KerbalGeeAdventureParameter) && a.State == ParameterState.Incomplete).ToList();
+
+				l = geeParams.Count;
+
+				for (int j = 0; j < l; j++)
+				{
+					KerbalGeeAdventureParameter g = geeParams[j] as KerbalGeeAdventureParameter;
+
+					if (g == null)
+						continue;
+
+					if (g.State != ParameterState.Incomplete)
+						continue;
+
+					if (g.kerbalName != protoCrew.name)
+						continue;
+
+					ReachDestination destination = g.GetParameter<ReachDestination>();
+
+					if (destination == null)
+						continue;
+
+					if (destination.Destination == null)
+						continue;
+
+					ReachSituation situation = g.GetParameter<ReachSituation>();
+
+					if (situation == null)
+						continue;
+
+					string article = getArticle(situation.Situation);
+
+					touristParams.Add(string.Format("Pass out from gee forces {0}\n{1} at {2}", article, ReachSituation.GetTitleStringShort(situation.Situation), destination.Destination.theName));
+				}
 			}
+		}
+
+		private string getArticle(Vessel.Situations sit)
+		{
+			switch(sit)
+			{
+				case Vessel.Situations.LANDED:
+				case Vessel.Situations.SPLASHED:
+				case Vessel.Situations.FLYING:
+					return "while";
+				case Vessel.Situations.SUB_ORBITAL:
+				case Vessel.Situations.ESCAPING:
+					return "while on a";
+				case Vessel.Situations.ORBITING:
+					return "while in";
+				case Vessel.Situations.PRELAUNCH:
+					return "while at";
+				case Vessel.Situations.DOCKED:
+					return "durrr";
+			}
+
+			return "";
 		}
 
 		private Color crewColor(ExperienceTrait t)
@@ -243,33 +301,73 @@ namespace PortraitStats
 
 				Image back = r.GetComponent<Image>();
 
-				if (back == null)
-					return;
-
-				back.rectTransform.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 51, 69);
+				if (back != null)
+					back.rectTransform.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 51, 69);
 
 				iconObject = createIcon(r.transform, crewIcon(c.experienceTrait));
-
-				if (PortraitStats.traitTooltip)
-				{
-					crewTip = iconObject.AddComponent<TooltipController_Text>();
-
-					crewTip.TooltipPrefabType = h.transform.GetChild(0).gameObject.GetComponent<TooltipController_Text>().TooltipPrefabType;
-				}
 			}
-			else if (PortraitStats.traitTooltip)
+
+			if (PortraitStats.transferButton)
 			{
-				crewTip = r.transform.GetChild(0).gameObject.AddComponent<TooltipController_Text>();
+				transferButton = MonoBehaviour.Instantiate(portrait.evaButton, h.transform) as Button;
 
-				crewTip.TooltipPrefabType = h.transform.GetChild(0).gameObject.GetComponent<TooltipController_Text>().TooltipPrefabType;
+				transferButton.name = "Transfer Button";
+
+				TextMeshProUGUI xferText = transferButton.GetComponentInChildren<TextMeshProUGUI>();
+
+				if (xferText != null)
+					xferText.text = "XFR";
+
+				TooltipController_Text tooltip = transferButton.GetComponent<TooltipController_Text>();
+
+				if (tooltip != null)
+					tooltip.textString = "Initiate Crew Transfer";
+
+				RectTransform rect = transferButton.GetComponent<RectTransform>();
+
+				if (rect != null)
+					rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, rect.anchoredPosition.y - rect.rect.height);
+
+				transferButton.onClick.RemoveAllListeners();
+
+				transferButton.onClick.AddListener(new UnityEngine.Events.UnityAction(initiateTransfer));
+
+				transferButton.gameObject.SetActive(false);
 			}
+		}
 
-			if (PortraitStats.expTooltip)
-			{
-				levelTip = r.transform.GetChild(1).gameObject.AddComponent<TooltipController_Text>();
+		private void initiateTransfer()
+		{
+			if (FlightGlobals.ActiveVessel == null)
+				return;
 
-				levelTip.TooltipPrefabType = h.transform.GetChild(0).gameObject.GetComponent<TooltipController_Text>().TooltipPrefabType;
-			}
+			if (FlightGlobals.ActiveVessel.GetVesselCrew().Count <= 0)
+				return;
+
+			if (CrewHatchController.fetch == null)
+				return;
+
+			if (CrewHatchController.fetch.Active)
+				return;
+
+			CrewHatchController.fetch.SpawnCrewDialog(crew.InPart, false, true);
+
+			if (CrewHatchController.fetch.CrewDialog == null)
+				return;
+
+			RectTransform rect = CrewHatchController.fetch.CrewDialog.GetComponent<RectTransform>();
+
+			if (rect == null)
+				return;
+
+			CrewHatchController.fetch.CrewDialog.transform.localPosition = fixMousePosition(rect);
+		}
+
+		private Vector2 fixMousePosition(RectTransform r)
+		{
+			bool b;
+			Vector2 pos = CanvasUtil.ScreenToUISpacePos(Input.mousePosition, DialogCanvasUtil.DialogCanvasRect, out b);
+			return new Vector2(pos.x - r.rect.width, pos.y + r.rect.height);
 		}
 
 		private GameObject createIcon(Transform parent, Sprite s)
@@ -291,8 +389,6 @@ namespace PortraitStats
 
 			CanvasRenderer cr = icon.AddComponent<CanvasRenderer>();
 
-			//log("Sprite: Anchor {0:F3}\nAnchor3D {1:F3}\nAnchorMax {2:F3}\nAnchorMin {3:F3}\nPosition {4:F3}\nOffsetMax {5:F3}\nOffsetMin {6:F3}\nPivot {7:F3}\nSize {8:F3}\nScale {9:F3}", RT.anchoredPosition, RT.anchoredPosition3D, RT.anchorMax, RT.anchorMin, RT.rect, RT.offsetMax, RT.offsetMin, RT.pivot, RT.sizeDelta, RT.localScale);
-
 			Image i = icon.AddComponent<Image>();
 			i.sprite = s;
 			i.color = iconColor;
@@ -304,9 +400,5 @@ namespace PortraitStats
 			return icon;
 		}
 
-		private void log(string s, params object[] m)
-		{
-			Debug.Log(string.Format("[Portrait Stats] " + s, m));
-		}
 	}
 }
