@@ -1,0 +1,31 @@
+{
+     "NAME":"Portrait Stats",
+	 "URL":"https://raw.githubusercontent.com/DMagic1/KSP-Portrait-Stats/master/GameData/PortraitStats/PortraitStats.version",
+	 "DOWNLOAD":"https://github.com/DMagic1/KSP-Portrait-Stats/releases",
+     "GITHUB":{
+         "USERNAME":"DMagic1",
+         "REPOSITORY":"KSP-Portrait-Stats",
+         "ALLOW_PRE_RELEASE":false,
+     },
+     "VERSION":{
+         "MAJOR":1,
+         "MINOR":0,
+         "PATCH":12,
+         "BUILD":0
+     },
+     "KSP_VERSION":{
+         "MAJOR":1,
+         "MINOR":2,
+         "PATCH":0
+     },
+     "KSP_VERSION_MIN":{
+         "MAJOR":1,
+         "MINOR":2,
+         "PATCH":0
+     },
+     "KSP_VERSION_MAX":{
+         "MAJOR":1,
+         "MINOR":2,
+         "PATCH":99
+     }
+ } 
