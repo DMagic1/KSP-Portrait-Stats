@@ -43,7 +43,7 @@ namespace PortraitStats
 	[KSPAddon(KSPAddon.Startup.Flight, false)]
 	public class PortraitStats : MonoBehaviour
 	{
-		private Dictionary<string, KerbalTrait> currentCrew = new Dictionary<string, KerbalTrait>();
+		private DictionaryValueList<string, KerbalTrait> currentCrew = new DictionaryValueList<string, KerbalTrait>();
 		private bool reload;
 		private bool careerMode;
 		private CameraManager.CameraMode cMode;
@@ -57,11 +57,12 @@ namespace PortraitStats
 
 		private static bool loaded = false;
 		private static ConfigNode settingsFile;
-		public static bool traitTooltip = true;
-		public static bool expTooltip;
 		public static bool showAlways;
 		public static bool useIcon;
+		public static bool extendedTooltips;
 		public static bool hoverHighlight;
+		public static bool transferButton;
+		public static int reloadDelay = 5;
 
 		public static Color pilotColor = XKCDColors.PastelRed;
 		public static Color engineerColor = XKCDColors.DarkYellow;
@@ -74,6 +75,11 @@ namespace PortraitStats
 		public static PortraitStats Instance
 		{
 			get { return instance; }
+		}
+
+		public static void log(string s, params object[] m)
+		{
+			Debug.Log(string.Format("[Portrait Stats] " + s, m));
 		}
 
 		private void Start()
@@ -105,12 +111,6 @@ namespace PortraitStats
 				settingsFile = GameDatabase.Instance.GetConfigNode("PortraitStats/Settings/Portrait_Stats_Config");
 				if (settingsFile != null)
 				{
-					settingsFile.TryGetValue("traitToolTip", ref traitTooltip);
-					settingsFile.TryGetValue("showAlways", ref showAlways);
-					settingsFile.TryGetValue("expToolTip", ref expTooltip);
-					settingsFile.TryGetValue("useIcon", ref useIcon);
-					settingsFile.TryGetValue("hoverHighlight", ref hoverHighlight);
-
 					if (settingsFile.HasValue("pilotColor"))
 						pilotColor = parseColor(settingsFile, "pilotColor", pilotColor);
 					if (settingsFile.HasValue("engineerColor"))
@@ -123,6 +123,15 @@ namespace PortraitStats
 						unknownColor = parseColor(settingsFile, "unknownClassColor", unknownColor);
 				}
 			}
+
+			StatsGameSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<StatsGameSettings>();
+
+			showAlways = settings.AlwaysShow;
+			useIcon = settings.UseIcon;
+			extendedTooltips = settings.ExtendedTooltips;
+			hoverHighlight = settings.HoverHighlight;
+			transferButton = settings.TransferButton;
+
 		}
 
 		private Color parseColor(ConfigNode node, string name, Color c)
@@ -150,23 +159,34 @@ namespace PortraitStats
 
 		private void Update()
 		{
-			if (!traitTooltip && !expTooltip)
+			if (!transferButton && !hoverHighlight)
 				return;
 
-			foreach (KerbalTrait k in currentCrew.Values)
+			var enumerator = currentCrew.GetDictEnumerator();
+
+			while (enumerator.MoveNext())
 			{
+				KerbalTrait k = enumerator.Current.Value;
+
 				if (k == null)
 					continue;
 
 				if (k.Portrait.hoverArea.Hover)
 				{
-					if (traitTooltip)
+					if (extendedTooltips)
+						k.Portrait.tooltip.descriptionString = k.CachedTooltip + extraTooltip(k);
+
+					if (transferButton)
 					{
-						k.CrewTip.textString = crewTooltip(k);
-					}
-					if (expTooltip)
-					{
-						k.LevelTip.textString = levelTooltip(k.ProtoCrew);
+						Vessel v = k.Crew.InPart.vessel;
+
+						if (v.GetCrewCapacity() > v.GetCrewCount())
+						{
+							if (!k.TransferButton.gameObject.activeSelf)
+								k.TransferButton.gameObject.SetActive(true);
+						}
+						else if (k.TransferButton.gameObject.activeSelf)
+							k.TransferButton.gameObject.SetActive(false);
 					}
 
 					k.setHighlight(hoverHighlight);
@@ -176,79 +196,57 @@ namespace PortraitStats
 			}
 		}
 
-		private string levelTooltip(ProtoCrewMember c)
+		private string extraTooltip(KerbalTrait k)
 		{
-			StringBuilder text = new StringBuilder();
-			text.Append(string.Format("<b>{0}</b>", c.name));
-			text.AppendLine();
-			if (PortraitStats.Instance.careerMode)
-				text.Append(string.Format("<b>Experience:</b> {0:F2}/{1}", c.experience, KerbalRoster.GetExperienceLevelRequirement(c.experienceLevel)));
-			string log = KerbalRoster.GenerateExperienceLog(c.careerLog);
-			if (!string.IsNullOrEmpty(log))
-			{
-				text.AppendLine();
-				text.Append("<b>Career Log:</b>");
-				text.AppendLine();
-				text.Append(log);
-			}
-			log = KerbalRoster.GenerateExperienceLog(c.flightLog);
-			if (!string.IsNullOrEmpty(log))
-			{
-				text.AppendLine();
-				text.Append("<b>Current Flight:</b>");
-				text.AppendLine();
-				text.Append(log);
-			}
-			return text.ToString();
-		}
+			StringBuilder sb = StringBuilderCache.Acquire();
 
-		private string crewTooltip(KerbalTrait c)
-		{
-			StringBuilder text = new StringBuilder();
-			if (c.ProtoCrew.experienceTrait.TypeName == "Tourist")
+			if (k.ProtoCrew.experienceTrait.TypeName == "Tourist")
 			{
-				text.Append(string.Format("<b>{0}'s itinerary:</b>", c.ProtoCrew.name));
-				if (c.TouristParams.Count > 0)
+				sb.AppendLine();
+				sb.AppendLine();
+				sb.Append(string.Format("<b>{0}'s itinerary:</b>", k.ProtoCrew.name));
+				if (k.TouristParams.Count > 0)
 				{
-					for (int i = 0; i < c.TouristParams.Count; i++)
+					for (int i = 0; i < k.TouristParams.Count; i++)
 					{
-						text.AppendLine();
-						string s = c.TouristParams[i];
-						text.Append(s);
+						sb.AppendLine();
+						string s = k.TouristParams[i];
+						sb.Append(s);
 					}
 				}
 				else
 				{
-					text.AppendLine();
-					text.Append("Get thee home!");
+					sb.AppendLine();
+					sb.Append("Get thee home!");
 				}
-				text.AppendLine();
-				text.Append(c.Crew.InPart.partInfo.title);
+				sb.AppendLine();
+				sb.AppendLine();
+				sb.Append(k.Crew.InPart.partInfo.title);
 			}
 			else
 			{
-				text.Append(string.Format("<b>{0}</b>{1}", c.ProtoCrew.name, c.ProtoCrew.isBadass ? " - Badass" : ""));
-				text.AppendLine();
-				text.Append(c.Crew.InPart.partInfo.title);
-				text.AppendLine();
-				text.Append(string.Format("Courage: {0:P0} Stupidity: {1:P0}", c.ProtoCrew.courage, c.ProtoCrew.stupidity));
-				text.AppendLine();
-				text.Append(string.Format("<b>{0}</b>", c.ProtoCrew.experienceTrait.Title));
-				if (!string.IsNullOrEmpty(c.ProtoCrew.experienceTrait.Description))
+				sb.AppendLine();
+				sb.AppendLine();
+				sb.Append(string.Format("<b>Courage:</b> {0:P0} <b>Stupidity:</b> {1:P0}{2}{3}", k.ProtoCrew.courage, k.ProtoCrew.stupidity, k.ProtoCrew.veteran ? " - Veteran" : "", k.ProtoCrew.isBadass ? " - Badass" : ""));
+				sb.AppendLine();
+				sb.AppendLine();
+				sb.Append(k.Crew.InPart.partInfo.title);
+				sb.AppendLine();
+				sb.AppendLine();
+				if (PortraitStats.Instance.careerMode)
+					sb.Append(string.Format("<b>Experience:</b> {0:F2}/{1}", k.ProtoCrew.experience, KerbalRoster.GetExperienceLevelRequirement(k.ProtoCrew.experienceLevel)));
+				string log = KerbalRoster.GenerateExperienceLog(k.ProtoCrew.flightLog);
+				if (!string.IsNullOrEmpty(log))
 				{
-					text.AppendLine();
-					text.Append(c.ProtoCrew.experienceTrait.Description);
-				}
-				if (!string.IsNullOrEmpty(c.ProtoCrew.experienceTrait.DescriptionEffects))
-				{
-					text.AppendLine();
-					text.Append("<b>Effects</b>");
-					text.AppendLine();
-					text.Append(c.ProtoCrew.experienceTrait.DescriptionEffects);
+					sb.AppendLine();
+					sb.AppendLine();
+					sb.Append("<b>Current Flight:</b>");
+					sb.AppendLine();
+					sb.Append(log);
 				}
 			}
 
-			return text.ToString();
+			return sb.ToStringAndRelease();
 		}
 
 		private void LateUpdate()
@@ -280,7 +278,7 @@ namespace PortraitStats
 					if (k == null)
 						return;
 
-					if (currentCrew.ContainsKey(p.crewMemberName))
+					if (currentCrew.Contains(p.crewMemberName))
 						continue;
 
 					if (k.state == Kerbal.States.DEAD)
@@ -372,7 +370,7 @@ namespace PortraitStats
 
 			int timer = 0;
 
-			while (timer < 5)
+			while (timer < reloadDelay)
 			{
 				timer++;
 				yield return null;
@@ -380,13 +378,23 @@ namespace PortraitStats
 
 			if (clean)
 			{
-				var nullPortraits = currentCrew.Where(k => k.Value.ProtoCrew == null).Select(k => k.Key).ToList();
+				List<string> nullPortraits = new List<string>();
 
-				for (int i = 0; i < nullPortraits.Count; i++)
+				var enumerator = currentCrew.GetDictEnumerator();
+
+				while (enumerator.MoveNext())
+				{
+					var pair = enumerator.Current;
+
+					if (pair.Value.ProtoCrew == null)
+						nullPortraits.Add(pair.Key);
+				}
+
+				for (int i = nullPortraits.Count - 1; i >= 0; i--)
 				{
 					string s = nullPortraits[i];
 
-					if (currentCrew.ContainsKey(s))
+					if (currentCrew.Contains(s))
 						currentCrew.Remove(s);
 				}
 			}
