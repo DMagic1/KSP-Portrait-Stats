@@ -70,6 +70,7 @@ namespace PortraitStats
 		public static Color touristColor = XKCDColors.SapGreen;
 		public static Color unknownColor = XKCDColors.White;
 
+        public static Dictionary<string, KerbalTraitSetting> traitSettings = new Dictionary<string, KerbalTraitSetting>();
 		private static PortraitStats instance;
 
 		public static PortraitStats Instance
@@ -102,29 +103,89 @@ namespace PortraitStats
 			{
 				loaded = true;
 
-				pilotTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/pilotIcon", false);
-				engTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/engineerIcon", false);
-				sciTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/scientistIcon", false);
-				tourTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/touristIcon", false);
-				unknownTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/questionIcon", false);
+                //pilotTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/pilotIcon", false);
+                //engTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/engineerIcon", false);
+                //sciTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/scientistIcon", false);
+                //tourTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/touristIcon", false);
+                //unknownTex = GameDatabase.Instance.GetTexture("PortraitStats/Icons/questionIcon", false);
 
-				settingsFile = GameDatabase.Instance.GetConfigNode("PortraitStats/Settings/Portrait_Stats_Config");
-				if (settingsFile != null)
-				{
-					if (settingsFile.HasValue("pilotColor"))
-						pilotColor = parseColor(settingsFile, "pilotColor", pilotColor);
-					if (settingsFile.HasValue("engineerColor"))
-						engineerColor = parseColor(settingsFile, "engineerColor", engineerColor);
-					if (settingsFile.HasValue("scientistColor"))
-						scientistColor = parseColor(settingsFile, "scientistColor", scientistColor);
-					if (settingsFile.HasValue("touristColor"))
-						touristColor = parseColor(settingsFile, "touristColor", touristColor);
-					if (settingsFile.HasValue("unknownClassColor"))
-						unknownColor = parseColor(settingsFile, "unknownClassColor", unknownColor);
-				}
-			}
+                //settingsFile = GameDatabase.Instance.GetConfigNode("PortraitStats/Settings/Portrait_Stats_Config");
+                //if (settingsFile != null)
+                //{
+                //	if (settingsFile.HasValue("pilotColor"))
+                //		pilotColor = parseColor(settingsFile, "pilotColor", pilotColor);
+                //	if (settingsFile.HasValue("engineerColor"))
+                //		engineerColor = parseColor(settingsFile, "engineerColor", engineerColor);
+                //	if (settingsFile.HasValue("scientistColor"))
+                //		scientistColor = parseColor(settingsFile, "scientistColor", scientistColor);
+                //	if (settingsFile.HasValue("touristColor"))
+                //		touristColor = parseColor(settingsFile, "touristColor", touristColor);
+                //	if (settingsFile.HasValue("unknownClassColor"))
+                //		unknownColor = parseColor(settingsFile, "unknownClassColor", unknownColor);
+                //}
 
-			StatsGameSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<StatsGameSettings>();
+                Debug.Log("[PSX] Initialising trait settingss");
+                ConfigNode node = GameDatabase.Instance.GetConfigNode("PortraitStats/PortraitStatTraits/PortraitStatsTraits");
+                if (node != null)
+                {
+                    var nodes = node.GetNodes("Trait");
+                    Debug.Log($"[PSX] Found trait settings file - {nodes.Length} traits counted.");
+
+                    for (int i = 0; i < nodes.Length; i++)
+                    {
+                        bool valid = true;
+                        var newTrait = new KerbalTraitSetting();
+                        if (nodes[i].HasValue("name"))
+                            newTrait.Name = nodes[i].GetValue("name");
+                        else
+                        {
+                            Debug.Log("[PSX] invalid trait node: did not contain a name field.");
+                            valid = false;
+                        }
+
+                        if (nodes[i].HasValue("icon"))
+                            newTrait.Icon = GameDatabase.Instance.GetTexture(nodes[i].GetValue("icon"), false);
+                        else
+                        {
+                            Debug.Log("[PSX] invalid trait node: did not contain an icon field.");
+                            valid = false;
+                        }
+
+                        if (nodes[i].HasValue("color"))
+                            newTrait.Color = parseColor(nodes[i], "color", XKCDColors.White);
+                        else
+                        {
+                            Debug.Log("[PSX] invalid trait node: did not contain a color field.");
+                            valid = false;
+                        }
+
+                        if (valid)
+                        {
+                            try
+                            {
+                                traitSettings.Add(newTrait.Name, newTrait);
+                                Debug.Log($"[PSX] Added trait config: {newTrait.Name} - {nodes[i].GetValue("icon")} - {newTrait.Color}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.LogError($"[PSX] - Error: {ex.Message}");
+                            }
+                        }
+                            
+                    }
+                    //traitSettings.Add("Pilot", new KerbalTraitSetting("Pilot", GameDatabase.Instance.GetTexture("PortraitStats/Icons/pilotIcon", false), XKCDColors.Amethyst));
+                    //traitSettings.Add("Engineer", new KerbalTraitSetting("Engineer", GameDatabase.Instance.GetTexture("PortraitStats/Icons/engineerIcon", false), XKCDColors.DarkYellow));
+                    //traitSettings.Add("Scientist", new KerbalTraitSetting("Scientist", GameDatabase.Instance.GetTexture("PortraitStats/Icons/scientistIcon", false), XKCDColors.DirtyBlue));
+                    //traitSettings.Add("Tourist", new KerbalTraitSetting("Tourist", GameDatabase.Instance.GetTexture("PortraitStats/Icons/touristIcon", false), XKCDColors.SapGreen));
+                }
+                else
+                    Debug.Log("[PSX] Could not find trait settings config.");
+
+                if (!traitSettings.ContainsKey("Unknown"))
+                    traitSettings.Add("Unknown", new KerbalTraitSetting("Unknown", GameDatabase.Instance.GetTexture("PortraitStats/Icons/questionIcon", false), XKCDColors.White));
+            }
+
+            StatsGameSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<StatsGameSettings>();
 
 			showAlways = settings.AlwaysShow;
 			useIcon = settings.UseIcon;

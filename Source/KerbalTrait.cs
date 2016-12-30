@@ -46,6 +46,7 @@ namespace PortraitStats
 		private Kerbal crew;
 		private GameObject iconObject;
 		private Color iconColor;
+        private KerbalTraitSetting trait;
 		private KerbalPortrait portrait;
 		private bool highlighting;
 		private PartSelector highlighter;
@@ -59,14 +60,17 @@ namespace PortraitStats
 			portrait = p;
 			crew = k;
 			protoCrew = k.protoCrewMember;
-			iconColor = crewColor(protoCrew.experienceTrait);
+            trait = PortraitStats.traitSettings.ContainsKey(protoCrew.experienceTrait.TypeName) ? PortraitStats.traitSettings[protoCrew.experienceTrait.TypeName] : PortraitStats.traitSettings["Unknown"];
+            iconColor = trait.Color; // crewColor(protoCrew.experienceTrait);
 			GameObject hover = p.hoverObjectsContainer;
 			GameObject role = hover.transform.GetChild(2).gameObject;
 			setupGameObjects(role, hover, protoCrew);
 			addEVAListener();
-			if (protoCrew.experienceTrait.TypeName == "Tourist")
+			if (trait.Name == "Tourist")
 				touristUpdate();
 			cachedTooltip = portrait.tooltip.descriptionString;
+
+            UnityEngine.Debug.Log($"[PSX] KerbalTrait created for {k.name} - {protoCrew.experienceTrait.TypeName}");
 		}
 
 		public List<string> TouristParams
@@ -252,38 +256,51 @@ namespace PortraitStats
 			return "";
 		}
 
-		private Color crewColor(ExperienceTrait t)
-		{
-			switch (t.TypeName)
-			{
-				case "Pilot":
-					return PortraitStats.pilotColor;
-				case "Engineer":
-					return PortraitStats.engineerColor;
-				case "Scientist":
-					return PortraitStats.scientistColor;
-				case "Tourist":
-					return PortraitStats.touristColor;
-				default:
-					return PortraitStats.unknownColor;
-			}
-		}
+		//private Color crewColor(ExperienceTrait t)
+		//{
+
+  //          if (PortraitStats.traitSettings.ContainsKey(t.TypeName))
+  //              return PortraitStats.traitSettings[t.TypeName].Color;
+  //          else
+  //              return PortraitStats.traitSettings["Unknown"].Color;
+
+		//	//switch (t.TypeName)
+		//	//{
+		//	//	case "Pilot":
+		//	//		return PortraitStats.pilotColor;
+		//	//	case "Engineer":
+		//	//		return PortraitStats.engineerColor;
+		//	//	case "Scientist":
+		//	//		return PortraitStats.scientistColor;
+		//	//	case "Tourist":
+		//	//		return PortraitStats.touristColor;
+		//	//	default:
+		//	//		return PortraitStats.unknownColor;
+		//	//}
+		//}
 
 		private Sprite crewIcon(ExperienceTrait t)
 		{
-			switch (t.TypeName)
-			{
-				case "Pilot":
-					return Sprite.Create(PortraitStats.pilotTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
-				case "Engineer":
-					return Sprite.Create(PortraitStats.engTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
-				case "Scientist":
-					return Sprite.Create(PortraitStats.sciTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
-				case "Tourist":
-					return Sprite.Create(PortraitStats.tourTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
-				default:
-					return Sprite.Create(PortraitStats.unknownTex, new Rect(0, 0, 24, 24), new Vector2(0.5f, 0.5f));
-			}
+            Debug.Log($"[PSX] Creating sprite for {trait.Name}: {trait.Icon.width} x {trait.Icon.height}");
+            return Sprite.Create(trait.Icon, new Rect(0, 0, trait.Icon.width, trait.Icon.height), new Vector2(0.5f, 0.5f));
+            //if (PortraitStats.traitSettings.ContainsKey(t.TypeName))
+            //    return Sprite.Create(PortraitStats.traitSettings[t.TypeName].Icon, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
+            //else
+            //    return Sprite.Create(PortraitStats.traitSettings["Unknown"].Icon, new Rect(0, 0, 24, 24), new Vector2(0.5f, 0.5f));
+
+            //switch (t.TypeName)
+			//{
+			//	case "Pilot":
+			//		return Sprite.Create(PortraitStats.pilotTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
+			//	case "Engineer":
+			//		return Sprite.Create(PortraitStats.engTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
+			//	case "Scientist":
+			//		return Sprite.Create(PortraitStats.sciTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
+			//	case "Tourist":
+			//		return Sprite.Create(PortraitStats.tourTex, new Rect(0, 0, 28, 28), new Vector2(0.5f, 0.5f));
+			//	default:
+			//		return Sprite.Create(PortraitStats.unknownTex, new Rect(0, 0, 24, 24), new Vector2(0.5f, 0.5f));
+			//}
 		}
 
 		private void setupGameObjects(GameObject r, GameObject h, ProtoCrewMember c)

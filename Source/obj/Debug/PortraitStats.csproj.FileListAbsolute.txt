@@ -1,0 +1,3 @@
+E:\Games\Dev-KSP\KSP-Portrait-Stats\KSP-Portrait-Stats\Source\Output\PortraitStats.dll
+E:\Games\Dev-KSP\KSP-Portrait-Stats\KSP-Portrait-Stats\Source\obj\Debug\PortraitStats.csprojResolveAssemblyReference.cache
+E:\Games\Dev-KSP\KSP-Portrait-Stats\KSP-Portrait-Stats\Source\obj\Debug\PortraitStats.dll
