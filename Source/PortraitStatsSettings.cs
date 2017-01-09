@@ -19,16 +19,6 @@ namespace PortraitStats
 		public bool TransferButton = true;
 		[Persistent]
 		public int ReloadDelay = 5;
-		[Persistent]
-		public Color PilotColor = XKCDColors.PastelRed;
-		[Persistent]
-		public Color EngineerColor = XKCDColors.DarkYellow;
-		[Persistent]
-		public Color ScientistColor = XKCDColors.DirtyBlue;
-		[Persistent]
-		public Color TouristColor = XKCDColors.SapGreen;
-		[Persistent]
-		public Color UnknownColor = XKCDColors.White;
 
 		private const string fileName = "PluginData/Settings.cfg";
 		private string fullPath;
@@ -58,6 +48,8 @@ namespace PortraitStats
 
 			if (Load())
 				PortraitStats.log("Settings file loaded");
+			else
+				Save();
 		}
 
 		private void OnDestroy()
