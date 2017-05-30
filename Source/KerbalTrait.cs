@@ -31,6 +31,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using KSP.UI.TooltipTypes;
 using KSP.UI.Screens.Flight;
+using KSP.Localization;
 using Contracts;
 using Contracts.Parameters;
 using FinePrint.Contracts;
@@ -229,7 +230,7 @@ namespace PortraitStats
 
 					string article = getArticle(situation.Situation);
 
-					touristParams.Add(string.Format("Pass out from gee forces {0}\n{1} at {2}", article, ReachSituation.GetTitleStringShort(situation.Situation), destination.Destination.theName));
+					touristParams.Add(string.Format("Pass out from gee forces {0}\n{1} at {2}", article, ReachSituation.GetTitleStringShort(situation.Situation), Localizer.Format("<<1>>", destination.Destination.displayName)));
 				}
 			}
 		}
@@ -272,7 +273,7 @@ namespace PortraitStats
 
 			if (PortraitStats.useIcon)
 			{
-				r.transform.GetChild(0).gameObject.SetActive(false);
+				r.transform.GetChild(1).gameObject.SetActive(false);
 
 				Image back = r.GetComponent<Image>();
 
