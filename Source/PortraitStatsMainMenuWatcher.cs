@@ -23,6 +23,7 @@ THE SOFTWARE.
 */
 #endregion
 
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
@@ -35,7 +36,6 @@ namespace PortraitStats
 	public class PortraitStatsMainMenuWatcher : MonoBehaviour
 	{
 		private MainMenu menu;
-		private Callback newGameTap;
 
 		private void Start()
 		{
@@ -44,15 +44,11 @@ namespace PortraitStats
 			if (menu == null)
 				return;
 
-			newGameTap = menu.newGameBtn.onTap;
-
-			menu.newGameBtn.onTap = new Callback(onTap);
+			menu.newGameBtn.onTap = (Callback)Delegate.Combine(menu.newGameBtn.onTap, new Callback(onTap));
 		}
 
 		private void onTap()
 		{
-			newGameTap.Invoke();
-
 			StartCoroutine(AddListener());
 		}
 
