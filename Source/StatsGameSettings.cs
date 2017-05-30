@@ -38,6 +38,11 @@ namespace PortraitStats
 			get { return _section; }
 		}
 
+		public override string DisplaySection
+		{
+			get { return _section; }
+		}
+
 		public override int SectionOrder
 		{
 			get { return _order; }
