@@ -61,8 +61,8 @@ namespace PortraitStats
 			portrait = p;
 			crew = k;
 			protoCrew = k.protoCrewMember;
-            trait = PortraitStats.traitSettings.ContainsKey(protoCrew.experienceTrait.TypeName) 
-                ? PortraitStats.traitSettings[protoCrew.experienceTrait.TypeName] 
+            trait = PortraitStats.traitSettings.ContainsKey(protoCrew.experienceTrait.Config.Name)
+				? PortraitStats.traitSettings[protoCrew.experienceTrait.Config.Name] 
                 : PortraitStats.traitSettings["Unknown"];
             iconColor = trait.Color; 
 			GameObject hover = p.hoverObjectsContainer;

@@ -229,7 +229,7 @@ namespace PortraitStats
 		{
 			StringBuilder sb = StringBuilderCache.Acquire();
 
-			if (k.ProtoCrew.experienceTrait.TypeName == "Tourist")
+			if (k.ProtoCrew.experienceTrait.Config.Name == "Tourist")
 			{
 				sb.AppendLine();
 				sb.AppendLine();
@@ -388,7 +388,7 @@ namespace PortraitStats
 		{
 			foreach (KerbalTrait k in currentCrew.Values)
 			{
-				if (k.ProtoCrew.experienceTrait.TypeName == "Tourist")
+				if (k.ProtoCrew.experienceTrait.Config.Name == "Tourist")
 					k.touristUpdate();
 			}
 		}
