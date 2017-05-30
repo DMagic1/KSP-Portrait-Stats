@@ -49,7 +49,10 @@ namespace PortraitStats
 			if (Load())
 				PortraitStats.log("Settings file loaded");
 			else
-				Save();
+			{
+				if (Save())
+					PortraitStats.log("New Settings files generated at:\n{0}", fullPath);
+			}
 		}
 
 		private void OnDestroy()
