@@ -42,12 +42,12 @@ namespace PortraitStats
 {
 	public class KerbalTrait
 	{
-		private const int UILayer = 5;
+		// private const int UILayer = 5;
 		private ProtoCrewMember protoCrew;
 		private Kerbal crew;
 		private GameObject iconObject;
-		private Color iconColor;
-        private KerbalTraitSetting trait;
+		private Color iconColor = XKCDColors.White;
+		private CTIWrapper.KerbalTraitSetting trait;
 		private KerbalPortrait portrait;
 		private bool highlighting;
 		private PartSelector highlighter;
@@ -61,15 +61,16 @@ namespace PortraitStats
 			portrait = p;
 			crew = k;
 			protoCrew = k.protoCrewMember;
-            trait = PortraitStats.traitSettings.ContainsKey(protoCrew.experienceTrait.Config.Name)
-				? PortraitStats.traitSettings[protoCrew.experienceTrait.Config.Name] 
-                : PortraitStats.traitSettings["Unknown"];
-            iconColor = trait.Color; 
+			if (PortraitStats.ctiOk)
+			{
+				trait = CTIWrapper.CTI.getTrait(protoCrew.experienceTrait.TypeName);
+				iconColor = (trait.Color != null) ? (Color)trait.Color : XKCDColors.White; 
+			}
 			GameObject hover = p.hoverObjectsContainer;
 			GameObject role = hover.transform.GetChild(2).gameObject;
 			setupGameObjects(role, hover, protoCrew);
 			addEVAListener();
-			if (trait.Name == "Tourist")
+			if (protoCrew.experienceTrait.TypeName == "Tourist")
 				touristUpdate();
 			cachedTooltip = portrait.tooltip.descriptionString;
 		}
@@ -257,11 +258,6 @@ namespace PortraitStats
 			return "";
 		}
 
-		private Sprite crewIcon(ExperienceTrait t)
-		{
-            return Sprite.Create(trait.Icon, new Rect(0, 0, trait.Icon.width, trait.Icon.height), new Vector2(0.5f, 0.5f));
-		}
-
 		private void setupGameObjects(GameObject r, GameObject h, ProtoCrewMember c)
 		{
 			if (PortraitStats.showAlways)
@@ -280,7 +276,7 @@ namespace PortraitStats
 				if (back != null)
 					back.rectTransform.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 51, 69);
 
-				iconObject = createIcon(r.transform, crewIcon(c.experienceTrait));
+				iconObject = createIcon(r.transform);
 			}
 
 			if (PortraitStats.transferButton)
@@ -346,13 +342,11 @@ namespace PortraitStats
 			return new Vector2(pos.x - r.rect.width, pos.y + r.rect.height);
 		}
 
-		private GameObject createIcon(Transform parent, Sprite s)
+		private GameObject createIcon(Transform parent)
 		{
-			GameObject icon = new GameObject("Icon");
+			GameObject icon = trait.makeGameObject();
 
-			icon.layer = UILayer;
-
-			RectTransform RT = icon.AddComponent<RectTransform>();
+			RectTransform RT = icon.GetComponent<RectTransform>();
 			RT.pivot = new Vector2(0, 0);
 			RT.offsetMax = new Vector2(-26, 19);
 			RT.offsetMin = new Vector2(-6, 1);
@@ -362,12 +356,6 @@ namespace PortraitStats
 			RT.anchoredPosition = new Vector2(-56, -5);
 			RT.localScale = new Vector3(1, 1, 1);
 			RT.localPosition.Set(0f, 0f, 0f);
-
-			CanvasRenderer cr = icon.AddComponent<CanvasRenderer>();
-
-			Image i = icon.AddComponent<Image>();
-			i.sprite = s;
-			i.color = iconColor;
 
 			icon.transform.SetParent(parent, false);
 
