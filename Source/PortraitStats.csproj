@@ -46,7 +46,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="KerbalTraitSetting.cs" />
+    <Compile Include="CTIWrapper.cs" />
     <Compile Include="PortraitStats.cs" />
     <Compile Include="KerbalTrait.cs" />
     <Compile Include="PortraitStatsMainMenuWatcher.cs" />
