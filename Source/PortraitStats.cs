@@ -82,6 +82,7 @@ namespace PortraitStats
 			careerMode = HighLogic.CurrentGame.Mode == Game.Modes.CAREER;
 
 			reload = true;
+
 			if (!loaded)
 			{
 				loaded = true;
@@ -99,7 +100,7 @@ namespace PortraitStats
 			if (useIcon && !ctiOk)
 			{
 				// fail gracefully if CTI missing or failed to load
-				log("useIcon is true, but CTI could not be found or failed to load! Turning icons off.");
+				log("useIcon is true, but Community Trait Icons could not be found or failed to load! Turning icons off.");
 				useIcon = false;
 			}
 		}
