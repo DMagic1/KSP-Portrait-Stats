@@ -33,7 +33,7 @@ using KSP.UI.Screens.Flight;
 using Contracts;
 using FinePrint.Contracts;
 using FinePrint.Contracts.Parameters;
-
+using KSP.Localization;
 namespace PortraitStats
 {
 
@@ -158,12 +158,19 @@ namespace PortraitStats
 		private string extraTooltip(KerbalTrait k)
 		{
 			StringBuilder sb = StringBuilderCache.Acquire();
-
-			if (k.ProtoCrew.experienceTrait.Config.Name == "Tourist")
+            String courage = Localizer.Format("#PORTAIT_STATS_UI_COURAGE");
+            String stupidity = Localizer.Format("#PORTAIT_STATS_UI_STUPIDITY");
+            String veteran = Localizer.Format("#PORTAIT_STATS_UI_VETERAN");
+            String badass = Localizer.Format("#PORTAIT_STATS_UI_BADASS");
+            String experience = Localizer.Format("#PORTAIT_STATS_UI_EXPERIENCE");
+            String current_flight = Localizer.Format("#PORTAIT_STATS_UI_CURRENT_FLIGHT");
+            String itinerary = Localizer.Format("PORTAIT_STATS_UI_ITINERARY");
+            String go_home = Localizer.Format("PORTAIT_STATS_UI_GO_HOME");
+            if (k.ProtoCrew.experienceTrait.Config.Name == "Tourist")
 			{
 				sb.AppendLine();
 				sb.AppendLine();
-				sb.Append(string.Format("<b>{0}'s itinerary:</b>", k.ProtoCrew.name));
+				sb.Append(string.Format("<b>"+itinerary+"</b>", k.ProtoCrew.name));
 				if (k.TouristParams.Count > 0)
 				{
 					for (int i = 0; i < k.TouristParams.Count; i++)
@@ -176,7 +183,7 @@ namespace PortraitStats
 				else
 				{
 					sb.AppendLine();
-					sb.Append("Get thee home!");
+					sb.Append(go_home);
 				}
 				sb.AppendLine();
 				sb.AppendLine();
@@ -186,20 +193,20 @@ namespace PortraitStats
 			{
 				sb.AppendLine();
 				sb.AppendLine();
-				sb.Append(string.Format("<b>Courage:</b> {0:P0} <b>Stupidity:</b> {1:P0}{2}{3}", k.ProtoCrew.courage, k.ProtoCrew.stupidity, k.ProtoCrew.veteran ? " - Veteran" : "", k.ProtoCrew.isBadass ? " - Badass" : ""));
+                sb.Append(string.Format("<b>" + courage + "</b> {0:P0} \n<b>" + stupidity + "</b> {1:P0}{2}{3}", k.ProtoCrew.courage, k.ProtoCrew.stupidity, k.ProtoCrew.veteran ? "\n"+veteran : "", k.ProtoCrew.isBadass ? "\n"+badass : ""));
 				sb.AppendLine();
 				sb.AppendLine();
 				sb.Append(k.Crew.InPart.partInfo.title);
 				sb.AppendLine();
 				sb.AppendLine();
 				if (PortraitStats.Instance.careerMode)
-					sb.Append(string.Format("<b>Experience:</b> {0:F2}/{1}", k.ProtoCrew.experience, KerbalRoster.GetExperienceLevelRequirement(k.ProtoCrew.experienceLevel)));
+					sb.Append(string.Format("<b>"+experience+"</b> {0:F2}/{1}", k.ProtoCrew.experience, KerbalRoster.GetExperienceLevelRequirement(k.ProtoCrew.experienceLevel)));
 				string log = KerbalRoster.GenerateExperienceLog(k.ProtoCrew.flightLog);
 				if (!string.IsNullOrEmpty(log))
 				{
 					sb.AppendLine();
 					sb.AppendLine();
-					sb.Append("<b>Current Flight:</b>");
+					sb.Append("<b>"+current_flight+"</b>");
 					sb.AppendLine();
 					sb.Append(log);
 				}
