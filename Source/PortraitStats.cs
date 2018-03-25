@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using KSP.UI.Screens.Flight;
+using KSP.Localization;
 using Contracts;
 using FinePrint.Contracts;
 using FinePrint.Contracts.Parameters;
@@ -55,7 +56,15 @@ namespace PortraitStats
 		public static bool transferButton;
 		public static int reloadDelay = 5;
 
-		private static PortraitStats instance;
+        private string courage = "Courage:";
+        private string stupidity = "Stupidity:";
+        private string veteran = "Veteran";
+        private string badass = "Badass";
+        private string experience = "Experience:";
+        private string current_flight = "Current Flight:";
+        private string go_home = "Get thee home!";
+
+        private static PortraitStats instance;
 
 		public static PortraitStats Instance
 		{
@@ -70,6 +79,8 @@ namespace PortraitStats
 		private void Start()
 		{
 			instance = this;
+
+            CacheStrings();
 
 			GameEvents.onVesselWasModified.Add(vesselCheck);
 			GameEvents.onVesselChange.Add(vesselChange);
@@ -104,6 +115,17 @@ namespace PortraitStats
 				useIcon = false;
 			}
 		}
+
+        private void CacheStrings()
+        {
+            courage = Localizer.Format("#PORTRAIT_STATS_UI_COURAGE");
+            stupidity = Localizer.Format("#PORTRAIT_STATS_UI_STUPIDITY");
+            veteran = Localizer.Format("#PORTRAIT_STATS_UI_VETERAN");
+            badass = Localizer.Format("#PORTRAIT_STATS_UI_BADASS");
+            experience = Localizer.Format("#PORTRAIT_STATS_UI_EXPERIENCE");
+            current_flight = Localizer.Format("#PORTRAIT_STATS_UI_CURRENT_FLIGHT");
+            go_home = Localizer.Format("#PORTRAIT_STATS_UI_GO_HOME");
+        }
 
 		private void OnDestroy()
 		{
@@ -159,47 +181,67 @@ namespace PortraitStats
 		{
 			StringBuilder sb = StringBuilderCache.Acquire();
 
-			if (k.ProtoCrew.experienceTrait.Config.Name == "Tourist")
-			{
-				sb.AppendLine();
-				sb.AppendLine();
-				sb.Append(string.Format("<b>{0}'s itinerary:</b>", k.ProtoCrew.name));
-				if (k.TouristParams.Count > 0)
-				{
-					for (int i = 0; i < k.TouristParams.Count; i++)
-					{
-						sb.AppendLine();
-						string s = k.TouristParams[i];
-						sb.Append(s);
-					}
-				}
-				else
-				{
-					sb.AppendLine();
-					sb.Append("Get thee home!");
-				}
+            if (k.ProtoCrew.experienceTrait.Config.Name == "Tourist")
+            {
+                sb.AppendLine();
+                sb.AppendLine();
+                sb.AppendFormat("<b>{0}</b>", Localizer.Format("#PORTRAIT_STATS_UI_ITINERARY", k.ProtoCrew.name));
+                if (k.TouristParams.Count > 0)
+                {
+                    for (int i = 0; i < k.TouristParams.Count; i++)
+                    {
+                        sb.AppendLine();
+                        sb.Append(k.TouristParams[i]);
+                    }
+                }
+                else
+                {
+                    sb.AppendLine();
+                    sb.Append(go_home);
+                }
+                sb.AppendLine();
+                sb.AppendLine();
+                sb.Append(k.Crew.InPart.partInfo.title);
+            }
+            else
+            {
+                sb.AppendLine();
+                sb.AppendLine();
+                sb.AppendFormat("<b>{0}</b> {1:P0} <b>{2}</b> {3:P0}", courage, k.ProtoCrew.courage, stupidity, k.ProtoCrew.stupidity);
+
+                bool vet = k.ProtoCrew.veteran;
+                bool bad = k.ProtoCrew.isBadass;
+
+                if (vet || bad)
+                {
+                    sb.AppendLine();
+
+                    if (vet)
+                        sb.Append(veteran);
+
+                    if (bad)
+                    {
+                        if (vet)
+                            sb.AppendFormat(" - {0}", badass);
+                        else
+                            sb.Append(badass);
+                    }
+                }
+                
 				sb.AppendLine();
 				sb.AppendLine();
 				sb.Append(k.Crew.InPart.partInfo.title);
-			}
-			else
-			{
 				sb.AppendLine();
 				sb.AppendLine();
-				sb.Append(string.Format("<b>Courage:</b> {0:P0} <b>Stupidity:</b> {1:P0}{2}{3}", k.ProtoCrew.courage, k.ProtoCrew.stupidity, k.ProtoCrew.veteran ? " - Veteran" : "", k.ProtoCrew.isBadass ? " - Badass" : ""));
-				sb.AppendLine();
-				sb.AppendLine();
-				sb.Append(k.Crew.InPart.partInfo.title);
-				sb.AppendLine();
-				sb.AppendLine();
-				if (PortraitStats.Instance.careerMode)
-					sb.Append(string.Format("<b>Experience:</b> {0:F2}/{1}", k.ProtoCrew.experience, KerbalRoster.GetExperienceLevelRequirement(k.ProtoCrew.experienceLevel)));
+                if (PortraitStats.Instance.careerMode)
+                    sb.AppendFormat("<b>{0}</b> {1:F2}/{2}", experience, k.ProtoCrew.experience, KerbalRoster.GetExperienceLevelRequirement(k.ProtoCrew.experienceLevel));
+                
 				string log = KerbalRoster.GenerateExperienceLog(k.ProtoCrew.flightLog);
 				if (!string.IsNullOrEmpty(log))
 				{
 					sb.AppendLine();
 					sb.AppendLine();
-					sb.Append("<b>Current Flight:</b>");
+					sb.AppendFormat("<b>{0}</b>", current_flight);
 					sb.AppendLine();
 					sb.Append(log);
 				}
