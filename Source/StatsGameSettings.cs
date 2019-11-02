@@ -8,7 +8,7 @@ namespace PortraitStats
 	{
 		private string _title = "Portrait Stats";
 		private int _order = 0;
-		private string _section = "DMagic Mods";
+		private string _section = "Portrait Stats";
 		private bool _haspresets = true;
 		private GameParameters.GameMode _gamemode = GameParameters.GameMode.ANY;
 
