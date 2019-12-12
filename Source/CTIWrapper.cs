@@ -1,7 +1,7 @@
 #region license
 /*The MIT License (MIT)
 
-Copyright (c) 2015-2017 cake>pie et al.
+Copyright (c) 2015-2019 cake>pie et al.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -142,11 +142,11 @@ namespace PortraitStats
 			}
 
 			private PropertyInfo _Color;
-			public Color? Color
+			public Color Color
 			{
 				get
 				{
-					if (_Color == null) return null;
+					if (_Color == null) return Color.white;
 					return (Color)_Color.GetValue(_actualKerbalTraitSetting, null);
 				}
 			}
@@ -192,7 +192,7 @@ namespace PortraitStats
 
 		private static void log(string s, params object[] m)
 		{
-			Debug.Log(string.Format("[CTIWrapper] " + s, m));
+			Debug.Log(string.Format("[" + typeof(CTIWrapper).Namespace + "|CTIWrapper] " + s, m));
 		}
 	}
 }
