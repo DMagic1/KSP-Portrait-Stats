@@ -1,0 +1,16 @@
+Localization
+{
+    de-de
+    {	
+    	#PORTRAIT_STATS_UI_COURAGE = Mut:
+    	#PORTRAIT_STATS_UI_STUPIDITY = Dummheit:
+    	#PORTRAIT_STATS_UI_VETERAN = Veteran
+    	#PORTRAIT_STATS_UI_BADASS = Knallhart
+    	#PORTRAIT_STATS_UI_EXPERIENCE = Erfahrung:
+    	#PORTRAIT_STATS_UI_CURRENT_FLIGHT = Aktueller Flug:
+
+    	// Tourist Parts
+    	#PORTRAIT_STATS_UI_ITINERARY = <<1>> Route:
+    	#PORTRAIT_STATS_UI_GO_HOME= Bring dich nach Hause!
+    }
+}
